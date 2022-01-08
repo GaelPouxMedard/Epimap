@@ -1,0 +1,11 @@
+https://dev.to/techparida/how-to-deploy-a-flask-app-on-heroku-heb
+
+https://dashboard.heroku.com/apps/epimap/deploy/heroku-git
+
+% heroku login
+% git init
+% heroku git:remote -a codingx-python
+% git add.
+% git commit -am "First python app"
+% git push heroku master
+

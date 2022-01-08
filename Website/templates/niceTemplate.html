@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>EpiMap</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/icon.png') }}">
+
+    <!--
+
+    Template 2103 Central
+
+	http://www.tooplate.com/view/2103-central
+
+    -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='font-awesome-4.7.0/css/font-awesome.min.css') }}">
+
+    <!--<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">-->
+    <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">-->
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <!--
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    -->
+
+    <!--
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='slick/slick.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='slick/slick-theme.css') }}">
+    -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tooplate-style.css') }}">
+
+    <script>
+        var renderPage = true;
+
+        if (navigator.userAgent.indexOf('MSIE') !== -1
+            || navigator.appVersion.indexOf('Trident/') > 0) {
+            /* Microsoft Internet Explorer detected in. */
+            alert("Please view this in a modern browser such as Chrome or Microsoft Edge.");
+            renderPage = false;
+        }
+    </script>
+
+    <script>
+        $(function () {
+          $('[data-toggle="tooltip"]').tooltip()
+        })
+    </script>
+
+    <script>
+        $(function () {
+          $('[data-toggle="popover"]').popover()
+        })
+    </script>
+
+    <script>
+        var source = new EventSource("/progress/{{session['id']}}");
+        source.onmessage = function(event) {
+
+
+            if(event.data != 100 && event.data != 0){
+                $('.progress-bar').show();
+                $('.progress-bar').css('width', event.data+'%').attr('aria-valuenow', event.data);
+                $('.progress-bar-label').text(event.data+'%');
+            }
+            else {
+                globalP = 0;
+                $('.progress-bar').hide();
+           }
+        }
+    </script>
+
+    <script>
+        $('.popover-dismiss').popover({
+          trigger: 'focus'
+        })
+    </script>
+
+    <script>
+        function pressedSubmit () {
+            $("#submitButtonActive").hide();
+            $("#submitButtonInactive").show();
+
+            //var formEl = document.forms.formTest;
+            //var formData = new FormData(formEl);
+
+            $("#divprogbar").show();
+            };
+    </script>
+
+    <script>
+        function buttonFormClicked () {
+        var formEl = document.forms.formTest;
+        var formData = new FormData(formEl);
+
+
+        if(formData.get('anim')=='y'){
+            $("#fps").show();
+            $("#imageOnly").hide();
+        }
+        else {
+            $("#fps").hide();
+            $("#imageOnly").show();
+        }
+
+        if(formData.get("plotClus")=='y'){
+            $("#radClus").show();
+        }
+        else {
+            $("#radClus").hide();
+        }
+
+        if(formData.get("plotPoints")=='y'){
+            $("#sizeScatter").show();
+            $("#plotClus").show();
+            if(formData.get("plotClus")=='y'){
+                $("#radClus").show();
+            }
+            else {
+                $("#radClus").hide();
+            }
+        }
+        else {
+            $("#sizeScatter").hide();
+            $("#plotClus").hide();
+            $("#radClus").hide();
+        }
+
+        if(formData.get("plotKde")=='y' || formData.get("plotHist2d")=='y'){
+            $("#gridSize").show();
+            $("#fixedVmax").show();
+            $("#vmax").show();
+            if(formData.get('fixedVmax')=='y'){
+                $("#vmax").show();
+            }
+            else {
+                $("#vmax").hide();
+            }
+        }
+        else {
+            $("#gridSize").hide();
+            $("#fixedVmax").hide();
+            $("#vmax").hide();
+        }
+
+        if(formData.get("zoom")=='y'){
+            $("#xlim").show();
+            $("#ylim").show();
+        }
+        else {
+            $("#xlim").hide();
+            $("#ylim").hide();
+        }
+
+        };
+    </script>
+
+    <style>
+        .popover {
+            max-width: 40%;
+        }
+
+        .smallFieldSize {
+            width: 100%;
+            min-width: 40px;
+        }
+
+        .normalFieldSize {
+            width: 100%;
+        }
+
+
+
+        table {
+            border-radius: 10px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            border-spacing:0;
+            box-shadow: 0 2px 10px #ccc;
+        }
+
+        /*every cell has a border on bottom & right*/
+
+        td {
+            //border-right: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+            padding: 10px 20px;
+            color: #444;
+        }
+
+        /*cancel the right border on the last column*/
+
+        td:last-child {
+            border-right: none;
+        }
+
+        /*th has border only on bottom*/
+
+        th {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 20px;
+            text-align: center;
+            background-color: #dedede;
+        }
+
+        /*rounded corner top left - first th*/
+
+        th:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        /*rounded corner top right - last th*/
+
+        th:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        /*rounder corner bottom left - first cell of last row*/
+
+        tr:last-child td:first-child {
+            border-radius: 0 0 0 10px;
+        }
+
+        /*rounded corner bottom right - last cell of last row*/
+
+        tr:last-child td:last-child {
+            border-radius: 0 0 10px 0;
+        }
+
+        /*last row in has no border on the bottom*/
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /*table header style*/
+        /*note: the gradient must be on the <th> & <td>,
+        ff you put it on the <tr> it will stick out of the
+        rounded corners in Firefox*/
+
+        thead tr th {
+            background-image: linear-gradient(top, #f7f7f7 0%, #d4d4d4 100%);;
+        }
+
+        /*table row style*/
+
+        tr td {
+            background-image: linear-gradient(top, #ffffff 0%, #e4f0ff 100%);
+            text-shadow: 0 1px 0 #fff;
+        }
+
+        /*table even rows style*/
+
+        tr:nth-child(even) td {
+            background-image: linear-gradient(top, #ffffff 0%, #eee 100%);
+        }
+    </style>
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+</head>
+
+<body>
+    <!-- Loader -->
+    <div id="loader-wrapper">
+        <div id="loader"></div>
+        <div id="loaderImage"><img src="{{ url_for('static', filename='img/icon.png') }}" height="100%"/></div>
+        <div class="loader-section section-left"></div>
+        <div class="loader-section section-right"></div>
+    </div>
+
+    <section class="container">
+        <section class="tm-section-head" id="top">
+            <header id="header" class="text-center tm-text-gray">
+                <h1><img src="{{ url_for('static', filename='img/icon.png') }}" height="80" style="transform:rotate(270deg);"/>  EPIMAP  <img src="{{ url_for('static', filename='img/icon.png') }}" height="80" style="transform:rotate(90deg);"/></h1>
+                <p>Easily visualize more than 130.000 roman inscriptions in time and space</p>
+            </header>
+
+            <nav class="navbar narbar-light">
+                <a class="navbar-brand tm-text-gray" href="#">
+                    Menu
+                </a>
+                <button type="button" id="nav-toggle" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#mainNav" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon">
+                        <i class="fa fa-navicon tm-fa-toggler-icon"></i>
+                    </span>
+                </button>
+                <div id="mainNav" class="collapse navbar-collapse tm-bg-white">
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a class="nav-link tm-text-gray" href="#top">Map
+                                <span class="sr-only">(current)</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link tm-text-gray" href="#tm-section-2">Parameters</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link tm-text-gray" href="#tm-section-metrics">Analysis</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link tm-text-gray" href="#tm-section-3">Documentation</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link tm-text-gray" href="#tm-section-6">Contact</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="navbar navbar-default navbar-fixed-top">
+                <a href="/index.html" class="navbar-brand"></a>
+                <botton class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mydropdown">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </botton>
+
+            </div>
+
+            <div class="collapse navbar-collapse" id="mydropdown">
+
+                <ul class="nav navbar-nav">
+                    <li>
+                        <a href="#">Home</a>
+                    </li>
+                    <li>
+                        <a href="#">info</a>
+                    </li>
+                    <li>
+                        <a href="#">contact</a>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="row" id="tm-section-1">
+            <div class="col-0 col-sm-2" style="text-align: center; align-items: center;"></div>
+            <div class="col-12 col-sm-8" style="text-align: center; align-items: center; width: 100%" id="colMap">
+                {% if not form.anim.data and not form.imageOnly.data%}
+                    {{ out|safe }}
+                {% endif %}
+                {% if not form.anim.data and form.imageOnly.data%}
+                    <img src="{{ url_for('static', filename=outputFileName+'') }}" width="100%"/>
+                {% endif %}
+                {% if form.anim.data %}
+                    <video controls style="width:100%; margin: 0 auto;;">
+
+                        <source src={{filename|safe}}
+                                type="video/mp4">
+
+                        Your browser does not support the video tag.
+
+                    </video>
+                {% endif %}
+
+                <div style="text-align: center">
+                    {% if not form.anim.data %}
+                        Download result: <a href="{{ url_for('static', filename=outputFileName+'') }}" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
+                    - Download data: <a href="/get-dataset" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
+
+                    {% endif %}
+
+                    {% if form.anim.data %}
+                        Download result: <a href="{{ url_for('static', filename=outputFileName+'') }}" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
+                     - Download data: <a href="/get-dataset" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
+                    {% endif %}
+                    <div style="font-size: 8px">
+                        (if your browser does not display the map correctly, try downloading it or launch the video and then click <a href="http://gpouxmed.pythonanywhere.com">here</a>)
+                    </div>
+                </div>
+            </div>
+            <div class="col-0 col-sm-2" style="text-align: center; align-items: center;"></div>
+
+        </section>
+
+        <section class="tm-section-2 tm-section-mb" id="tm-section-2">
+            <header class="text-center">
+                <i class="fa fa-4x fa-cogs pl-5 pb-5 pr-5 pt-2"></i>
+            </header>
+
+            <form id="formTest" method="post" action="">
+                <div class="row">
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <table class="roundedTable">
+                            <th colspan="3">
+                                Data
+                            </th>
+                            <tr id='filter'>
+                              <td>
+                                  {{ form.filter.label }}
+                              </td>
+                              <td>
+                                  {% if form.filter.errors %}
+                                    {% for message in form.filter.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.filter(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Filters" data-content="Only the inscriptions
+                                  containing those keywords are considered. Ex: Iulius, Pompeius, ... On the opposite, any inscription containing a given keyword can be excluded by typing '-keyword' in this field
+                                  To consider only the words that begin with your input, enter a space before the words (for instance: ' Iulius'). For words that finish with your input, put the space at the end ('Iulius '). Otherwise if no space is provided, the
+                                  input can figure anywhere in the corpus.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='filterOperator'>
+                              <td>
+                                  {{ form.filterOperator.label }}
+                              </td>
+                              <td>
+                                  {% if form.filterOperator.errors %}
+                                    {% for message in form.filterOperator.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.filterOperator(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Filters operator" data-content="Logical operator to link the filters together.
+                                  'or' will select every inscription that contains at least one of the filters. 'and' will select every inscription that contains all the filters.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='filterStatus'>
+                              <td>
+                                  {{ form.filterStatus.label }}
+                              </td>
+                              <td>
+                                  {% if form.filterStatus.errors %}
+                                    {% for message in form.filterStatus.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.filterStatus(class="normalFieldSize") }}</div>
+                              </td>
+                              <td id="filterStatusPop">
+                                  <a tabindex="0" style="color:black;max-width: 200%" class="d-inline-block" data-toggle="popover" data-html="true" data-trigger="hover" title="Filter status" data-content="Personal status of the owner observed from the inscription. The possibilities
+                           are essentially the following:&#013; <table display:list-item><tr><td>• carmina</td>	 <td>• signacula</td>	 <td>• Augusti/Augustae</td>	 <td>• praenomen</td></tr>
+                                                                     <tr><td>• defixiones</td>	 <td>• signacula medicorum</td>	 <td>• liberti/libertae</td>	 <td>• reges</td></tr>
+                                                                     <tr><td>• diplomata militaria</td>	 <td>• termini</td>	 <td>• milites</td>	 <td>• sacerdotes christiani</td></tr>
+                                                                     <tr><td>• inscriptiones christianae</td>	 <td>• tesserae nummulariae</td>	 <td>• mulieres</td>	 <td>• sacerdotes pagani</td></tr>
+                                                                     <tr><td>• leges</td>	 <td>• tituli fabricationis</td>	 <td>• nomen singulare</td>	 <td>• servi/servae</td></tr>
+                                                                     <tr><td>• litterae erasae</td>	 <td>• tituli honorarii</td>	 <td>• officium/professio</td>	 <td>• seviri Augustales</td></tr>
+                                                                     <tr><td>• litterae in litura</td>	 <td>• tituli operum</td>	 <td>• ordo decurionum</td>	 <td>• tria nomina</td></tr>
+                                                                     <tr><td>• miliaria</td>	 <td>• tituli possessionis</td>	 <td>• ordo equester</td>	 <td>• viri</td></tr>
+                                                                     <tr><td>• senatus consulta</td>	 <td>• tituli sacri</td>	 <td>• ordo senatorius</td> <td>• et nomen</td></tr>
+                                                                     <tr><td>• sigilla</td> <td>• impressa</td>	 <td>• tituli</td> <td>• sepulcrales</td></tr></table>">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='filterStatusOperator'>
+                              <td>
+                                  {{ form.filterStatusOperator.label }}
+                              </td>
+                              <td>
+                                  {% if form.filterStatusOperator.errors %}
+                                    {% for message in form.filterStatusOperator.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.filterStatusOperator(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Filter status operator" data-content="Logical operator to link the status together.
+                                  'or' will select every inscription that contains at least one of the filters. 'and' will select every inscription that contains all the filters.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='datasetApprox'>
+                              <td>
+                                  {{ form.datasetApprox.label }}
+                              </td>
+                              <td>
+                                  {% if form.datasetApprox.errors %}
+                                    {% for message in form.datasetApprox.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.datasetApprox(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-html="true" data-trigger="hover" title="Approximate datation" data-content="Include data that has been dated approximatively from inscription content.
+                                  <br>Hic Situs Est / HSE ~ -200/50 <br>Dis Manibus ~ 70/200 <br>Dis Manibus et memoriae Aeternae ~ 200/300">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='exclureRome'>
+                              <td>
+                                  {{ form.exclureRome.label }}
+                              </td>
+                              <td>
+                                  {% if form.exclureRome.errors %}
+                                    {% for message in form.exclureRome.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.exclureRome(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Exclude Rome" data-content="Exclude Rome from the dataset">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <table class="roundedTable">
+                            <th colspan="3">
+                                Period
+                            </th>
+                            <tr id='anim'>
+                              <td>
+                                  {{ form.anim.label }}
+                              </td>
+                              <td>
+                                  {% if form.anim.errors %}
+                                    {% for message in form.anim.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.anim(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Animation" data-content="Whether you want to generate a .mp4
+                                  video plotting the data over a time period or the averaged plots over this a period.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+
+                            </tr>
+                            <tr id='lAge'>
+                              <td>
+                                  {{ form.lAge.label }}
+                              </td>
+                              <td>
+                                  {% if form.lAge.errors %}
+                                    {% for message in form.lAge.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.lAge(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Lower age" data-content="Lower bound of the time period.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='uAge'>
+                              <td>
+                                  {{ form.uAge.label }}
+                              </td>
+                              <td>
+                                  {% if form.uAge.errors %}
+                                    {% for message in form.uAge.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.uAge(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Upper age" data-content="Upper bound of the time period.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='fps'>
+                              <td>
+                                  {{ form.fps.label }}
+                              </td>
+                              <td>
+                                  {% if form.fps.errors %}
+                                    {% for message in form.fps.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.fps(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Frames per second" data-content="Speed of the animation, in years per second.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='imageOnly'>
+                              <td>
+                                  {{ form.imageOnly.label }}
+                              </td>
+                              <td>
+                                  {% if form.imageOnly.errors %}
+                                    {% for message in form.imageOnly.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.imageOnly(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Interactive plot" data-content="Whether you want to get an interactive plot (allowing to zoom and display annotations) or not. An interactive plot takes a longer time to load.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                        </table>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <table class="roundedTable">
+                            <th colspan="3">
+                                Plot
+                            </th>
+                            <tr id='plotPoints'>
+                              <td>
+                                  {{ form.plotPoints.label }}
+                              </td>
+                              <td>
+                                  {% if form.plotPoints.errors %}
+                                    {% for message in form.plotPoints.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.plotPoints(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Plot points" data-content="Plots a point on the map for every inscription considered.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='plotKde'>
+                              <td>
+                                  {{ form.plotKde.label }}
+                              </td>
+                              <td>
+                                  {% if form.plotKde.errors %}
+                                    {% for message in form.plotKde.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.plotKde(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Plot density" data-content="Plots the density of considered inscriptions on the map.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='plotHist2d'>
+                              <td>
+                                  {{ form.plotHist2d.label }}
+                              </td>
+                              <td>
+                                  {% if form.plotHist2d.errors %}
+                                    {% for message in form.plotHist2d.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.plotHist2d(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Plot histogram" data-content="Plots a 2D-histogram of considered inscriptions on the map. The map is divided in
+                                  square regions of identical size, that are colored according to the number of inscriptions present in the regions.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='weighted'>
+                              <td>
+                                  {{ form.weighted.label }}
+                              </td>
+                              <td>
+                                  {% if form.weighted.errors %}
+                                    {% for message in form.weighted.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.weighted(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Weighted data" data-content="The datation estimations are often bounded within two ages. If weighted is unchecked, an inscription
+                                  is counted as 100% present at every time within those bounds. If weighted is checked, the data is counted as 0% present on the bounds, 100% at the median age, and varies linearly between those values. Ex: an inscription whose datation is
+                                  estimated between years 50 and 62 will be 0% present at years 50 and 62, 100% at year 56, 25% at years 53 and 59, etc.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='plotClus'>
+                              <td>
+                                  {{ form.plotClus.label }}
+                              </td>
+                              <td>
+                                  {% if form.plotClus.errors %}
+                                    {% for message in form.plotClus.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.plotClus(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Clustering" data-content="Whether to display detected clusters of points
+on the map. A cluster is defined such as none of its points is distant to all the others more than a radial distance R.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='radClus'>
+                              <td>
+                                  {{ form.radClus.label }}
+                              </td>
+                              <td>
+                                  {% if form.radClus.errors %}
+                                    {% for message in form.radClus.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.radClus(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Radius clustering" data-content="The radial distance R used to define a
+                                  cluster (see previous help note).">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='sizeScatter'>
+                              <td>
+                                  {{ form.sizeScatter.label }}
+                              </td>
+                              <td>
+                                  {% if form.sizeScatter.errors %}
+                                    {% for message in form.sizeScatter.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.sizeScatter(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Points size" data-content="For points plot: defines the size of the points.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='gridSize'>
+                              <td>
+                                  {{ form.gridSize.label }}
+                              </td>
+                              <td>
+                                  {% if form.gridSize.errors %}
+                                    {% for message in form.gridSize.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.gridSize(class="smallFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Grid size" data-content="For the histogram plot: defines in how many regions the map is divided. For the density plot: defines the resolution of the density computation.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                        </table>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <table class="roundedTable">
+                            <tr>
+                                <th colspan="3">
+                                    Background
+                                </th>
+                            </tr>
+                            <tr id='style'>
+                              <td>
+                                  {{ form.style.label }}
+                              </td>
+                              <td>
+                                  {% if form.style.errors %}
+                                    {% for message in form.style.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.style(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Map style" data-content="Type of the background map.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='cities'>
+                              <td>
+                                  {{ form.cities.label }}
+                              </td>
+                              <td>
+                                  {% if form.cities.errors %}
+                                    {% for message in form.cities.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.cities(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Cities" data-content="Whether to display major antic cities on the map. The represented cities are the following:
+                                  Rome, Constantinople, Alexandria, Palmyra, Mediolanum, Capua, Carthage, Leptis Magna, Massalia, Lugdunum, Ephesus, Ravenna, Tarragona, Athens, Thessaloniki, Londinium, Cadex">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='zoom'>
+                              <td>
+                                  {{ form.zoom.label }}
+                              </td>
+                              <td>
+                                  {% if form.zoom.errors %}
+                                    {% for message in form.zoom.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.zoom(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Zoom" data-content="Consider a subset of the map instead of the default display.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='xlim'>
+                              <td>
+                                  x_lim
+                              </td>
+                              <td>
+                                  <div onclick="buttonFormClicked()">{{ form.xmin(class="normalFieldSize") }}</div>
+                                  <div onclick="buttonFormClicked()">{{ form.xmax(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="x limits" data-content="Lower and upper bounds of the horizontal axis.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='ylim'>
+                              <td>
+                                  y_lim
+                              </td>
+                              <td>
+                                  <div onclick="buttonFormClicked()">{{ form.ymin(class="normalFieldSize") }}</div>
+                                  <div onclick="buttonFormClicked()">{{ form.ymax(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="y limits" data-content="Lower and upper bounds of the vertical axis.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='fixedVmax'>
+                              <td>
+                                  {{ form.fixedVmax.label }}
+                              </td>
+                              <td>
+                                  {% if form.fixedVmax.errors %}
+                                    {% for message in form.fixedVmax.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.fixedVmax(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Fixed maximum colorscale value" data-content="Whether to set a maximum value of the color scale in density and histogram plots.
+                                  Any value larger than this limit will be displayed with the darker color.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                            <tr id='vmax'>
+                              <td>
+                                  {{ form.vmax.label }}
+                              </td>
+                              <td>
+                                  {% if form.vmax.errors %}
+                                    {% for message in form.vmax.errors %}
+                                      <div style="color:red">{{ message }}</div>
+                                    {% endfor %}
+                                  {% endif %}
+                                  <div onclick="buttonFormClicked()">{{ form.vmax(class="normalFieldSize") }}</div>
+                              </td>
+                              <td>
+                                  <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Maximum value of color scale" data-content="The maximum value of the color scale (numerical 0.00 or scientific 0.0e00 formats accepted). For instance on a histogram plot, if
+                                  the maximum value of the color scale is set to 10, a region with population 100 will have the darkest color, a region with population 10 too, a region with population 0 the lightest color, and a region with population 5 the median color.">
+                                       <i class="fa fa-question-circle-o" aria-hidden="true"></i>
+                                  </a>
+                              </td>
+                            </tr>
+
+                        </table>
+                    </div>
+                </div>
+
+                <br>
+                <div style="text-align: center">
+                    <div id="submitButtonActive">
+                        <button type="submit" onclick="pressedSubmit()" class="btn btn-primary">
+                              Compute
+                        </button>
+                    </div>
+                    <div id="submitButtonInactive">
+                        <button class="btn btn-primary" type="button" disabled>
+                              <div class="spinner-border" role="status">
+                                  <span class="sr-only"></span>
+                              </div>
+                            Loading...
+                        </button>
+                        <div style="color: red">Do not refresh the page</div>
+                        <div style="color: grey; font-size=8">If you refreshed (!) and are stuck even if computation is done, click <a href="/doneComputing">here</a></div>
+                    </div>
+                </div>
+                <br>
+                <div style="color: blue;text-align:center;">Warning: once run you will have to wait for completion; do not refresh the page. If animated, this can take a long time.</div>
+            </form>
+
+            <br>
+            <div id="divprogbar" style="text-align:center;align:center;">
+                <div style="text-align:center;align:center;">Progress</div>
+                <div class="d-flex justify-content-center" style="text-align:center;align:center;">
+                    <div class="progress" style="width: 80%;height:20px;">
+                        <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                                <span class="progress-bar-label" style="text-align:center;align:center;">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="tm-section-2 tm-section-mb" id="tm-section-metrics">
+            <header class="text-center">
+                <i class="fa fa-4x far fa-list-alt pl-5 pb-5 pr-5 pt-2"></i>
+            </header>
+            <div class="row">
+                <div class="col-12 col-sm-4" id="divHistNames">
+                    {{ figHistWords|safe }}
+                    <div style="text-align:center">
+                        <a href="{{ url_for('static', filename=folderShort+'histNames.jpg') }}" download>
+                        <i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
+                    </div>
+                </div>
+                <div class="col col-sm-8" id="divMetrics">
+                    <div style="width=100%">
+                        {{ figMetrics|safe }}
+                    </div>
+                    <div style="text-align:center">
+                        <a href="{{ url_for('static', filename=folderShort+'metrics.jpg') }}" download>
+                        <i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tm-section-3bis tm-section-mb" id="tm-section-3">
+            <div class="row">
+                <div class="col-sm-5">
+                    <div class="image">
+                        <img src="{{ url_for('static', filename='img/HeaderDocCS.jpg') }}" class="img-fluid" />
+                    </div>
+                    <div class="tm-box-3">
+                        <h2>The data</h2>
+                        <p> This data comes from the <a href="http://www.manfredclauss.de">Clauss-Slaby's public repository</a>
+                            that stores a "data base that records almost all Latin inscriptions". Original data consists of a bit more
+                            than 500.000 latin inscriptions. From there, we selected the subset that contains both GPS coordinates and datation.
+                            The resulting corpus contains 135.000 inscriptions. In addition to the position and datation of the inscriptions, the
+                            data also consists of the inscriptions themselves and the reported status of the owner of the inscription -which allows
+                            for filtering. The lower date has been systematically shifted of 40 years (life expectancy in ancient Rome) as a broad estimate
+                            of the time the person lived before the inscription appeared. While being more intuitive, this also allows the very
+                            well dated inscriptions to appear in the corpus for at least 40 years -which is still considered a very localized datation.
+                            <br>
+                            <br>
+                            <i style="text-align:right">Last update of the dataset: 14/10/2020</i>
+                        </p>
+                        <div class="text-center">
+                            <a href="http://www.manfredclauss.de" class="btn btn-big">Clauss-Slaby database</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-7">
+                    <div class="image">
+                        <img src="{{ url_for('static', filename='img/HeaderDocApp.jpg') }}" class="img-fluid" />
+                    </div>
+                    <div class="tm-box-3">
+                        <header>
+                            <h2>This tool</h2>
+                        </header>
+                        <p> This tool has been designed for research purposes, allowing scientists to easily and quickly explore the Clauss-Slaby dataset and
+                            perform analysis that would not had been doable manually. In this optic, a number of tunable parameters are provided in the interface.
+                            The results provided by the tool can be freely used in academical context -referencing this tool's address tool while doing so being a
+                            nice payback :)
+                            <br>
+                            In addition, a draft of quantitative measurements is provided in the results section. To this date:
+                            <ul>
+                                <li>The list of the most frequent words corresponding to the given filter in the corpus.</li>
+                                <li>Population present in the corpus at a given time.</li>
+                                <li>The <a href="https://en.wikipedia.org/wiki/Entropy">entropy</a> of the data in the corpus. It is computed as follows: if two points on the map are closer than R km, they are linked together.
+                                    This way if two groups of points are far from each other they will not be linked together: they form clusters. The normalized entropy is defined as
+                                    <img src="http://latex.codecogs.com/svg.latex?S=-\frac{1}{\log C}\sum_c \frac{N_c}{N} \times \log (\frac{N_c}{N})" border="0"/>, where
+                                    <img src="http://latex.codecogs.com/svg.latex?C" border="0"/> is the number of clusters,
+                                    <img src="http://latex.codecogs.com/svg.latex?N_c" border="0"/> the population of the cluster c, and
+                                    <img src="http://latex.codecogs.com/svg.latex?N" border="0"/> the total population.
+                                    A large entropy (maximum 1) signifies that there are several large distinct clusters, while a low entropy (minimum 0) signifies the presence of only one big cluster.
+                                    This could for instance indicate a phenomena of names migration -colonisation, trading moves, cultural trend, etc.
+                                    Be careful, the quality of this measure depends on the total population considered. When population is low, it might be not significative.</li>
+                            </ul>
+                        </p>
+                        <div class="text-center">
+                            <a href="#tm-section-6" class="btn btn-big">Contact</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tm-section-6" id="tm-section-6">
+            <div class="row">
+                <div class="col-lg-7 col-md-7 col-xs-12">
+                    <div class="contact_message">
+                        <form action="mailto:epimap.webapp@gmail.com" method="post" class="contact-form">
+                            <div class="row mb-2">
+                                <div class="form-group col-xl-6">
+                                    <input type="text" id="contact_name" name="contact_name" class="form-control" placeholder="Name" required/>
+                                </div>
+                                <div class="form-group col-xl-6 pl-xl-1">
+                                    <input type="email" id="contact_email" name="contact_email" class="form-control" placeholder="Email" required/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <textarea id="contact_message" name="contact_message" class="form-control" rows="6" placeholder="Message" required></textarea>
+                            </div>
+                            <button type="submit" class="btn  tm-btn-submit float-right btn-big">Send It Now</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-lg-5 col-md-5 col-xs-12 tm-contact-right">
+                    <div class="tm-address-box">
+                        <h2 class="mb-4">Contact us</h2>
+                        <p class="mb-5">
+                            Try using the following form, or directly address the message to epimap.webapp@gmail.com
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="mt-5">
+            <p class="text-center">Copyleft <span class="copyleft">&copy;</span> 2020 EpiMap - Design: Tooplate</p>
+        </footer>
+    </section>
+
+    <!-- load JS files -->
+    <!-- <script type="text/javascript" src="js/jquery-1.11.3.min.js"></script> -->
+    <!-- <script src="js/popper.min.js"></script> -->
+    <!-- <script src="js/bootstrap.min.js"></script> -->
+    <!-- <script type="text/javascript" src="slick/slick.min.js"></script> -->
+
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.3.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='slick/slick.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+
+    <!-- Slick Carousel -->
+
+    <script>
+        function setCarousel() {
+            var slider = $('.tm-img-slider');
+
+            if (slider.hasClass('slick-initialized')) {
+                slider.slick('destroy');
+            }
+
+            if ($(window).width() > 991) {
+                // Slick carousel
+                slider.slick({
+                    autoplay: true,
+                    fade: true,
+                    speed: 800,
+                    infinite: true,
+                    slidesToShow: 1,
+                    slidesToScroll: 1
+                });
+            } else {
+                slider.slick({
+                    autoplay: true,
+                    fade: true,
+                    speed: 800,
+                    infinite: true,
+                    slidesToShow: 1,
+                    slidesToScroll: 1
+                });
+            }
+        }
+
+        $(document).ready(function () {
+            if (renderPage) {
+                $('body').addClass('loaded');
+            }
+
+            setCarousel();
+
+            $(window).resize(function () {
+                setCarousel();
+            });
+
+            // Close menu after link click
+            $('.nav-link').click(function () {
+                $('#mainNav').removeClass('show');
+            });
+
+            // https://css-tricks.com/snippets/jquery/smooth-scrolling/
+            // Select all links with hashes
+            $('a[href*="#"]')
+                // Remove links that don't actually link to anything
+                .not('[href="#"]')
+                .not('[href="#0"]')
+                .click(function (event) {
+                    // On-page links
+                    if (
+                        location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '')
+                        &&
+                        location.hostname == this.hostname
+                    ) {
+                        // Figure out element to scroll to
+                        var target = $(this.hash);
+                        target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
+                        // Does a scroll target exist?
+                        if (target.length) {
+                            // Only prevent default if animation is actually gonna happen
+                            event.preventDefault();
+                            $('html, body').animate({
+                                scrollTop: target.offset().top + 1
+                            }, 1000, function () {
+                                // Callback after animation
+                                // Must change focus!
+                                var $target = $(target);
+                                $target.focus();
+                                if ($target.is(":focus")) { // Checking if the target was focused
+                                    return false;
+                                } else {
+                                    $target.attr('tabindex', '-1'); // Adding tabindex for elements not focusable
+                                    $target.focus(); // Set focus again
+                                };
+                            });
+                        }
+                    }
+                });
+        });
+    </script>
+
+</body>
+
+<script>
+buttonFormClicked();
+$("#submitButtonInactive").hide();
+$("#divprogbar").hide();
+if({{ pending }}){pressedSubmit();}
+</script>
+
+</html>

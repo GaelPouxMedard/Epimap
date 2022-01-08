@@ -1,0 +1,137 @@
+{% extends "bootstrap/base.html" %}
+
+
+{% block styles %}
+{{super()}}
+
+<style>
+    .appsize { width: 800px }
+</style>
+
+<style>
+.container {
+  display: flex;
+  height: 600px;
+  width: 100%;
+  flex: 0 0 100%;
+}
+.left, .right {
+  height: 600px;
+  width: 25%;
+  background-color: rgba(0, 0, 0, .2);
+  position: sticky;
+  top:0;
+}
+
+.center {
+  height: 600px%;
+  width: 50%;
+  background-image: linear-gradient(to bottom, rgba(255, 0, 0, .2) 0, rgba(255, 255, 0, .2) 100%);
+}
+</style>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  TeX: {
+     equationNumbers: {  autoNumber: "AMS"  },
+     extensions: ["AMSmath.js", "AMSsymbols.js", "autobold.js", "color.js"]
+  }
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script>
+
+var source = new EventSource("/progress");
+source.onmessage = function(event) {
+
+
+    if(event.data != 100 && event.data != 0){
+        $('.progress-bar').show();
+        $('.progress-bar').css('width', event.data+'%').attr('aria-valuenow', event.data);
+        $('.progress-bar-label').text(event.data+'%');
+    }
+    else {
+        globalP = 0;
+        $('.progress-bar').hide();
+   }
+}
+</script>
+
+{% endblock %}
+
+<!--
+{% block navbar %}
+<nav class="navbar navbar-default" role="navigation">
+<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+    <ul class="nav navbar-nav">
+       {% for f in some_sequence %}
+       <li><a href="/{{f}}">{{f}}</a></li>
+       {% endfor %}
+       </ul>
+</div>
+</nav>
+{% endblock %}
+-->
+
+{% block content %}
+
+<div class="container">
+    <h1>Epimap</h1>
+    <div class="left">
+      <h2>Parameters</h2>
+
+      <form id="formTest" method="post" action="">
+        <table>
+              {% for field in form %}
+                  <tr>
+                      <td>
+                          {{ field.label }}
+                      </td>
+                      <td>
+                          {{ field }}
+                      </td>
+                  </tr>
+              {% endfor %}
+        </table>
+        <input type="submit" value="Compute" class="btn btn-default">
+      </form>
+
+      <div class="progress" style="width: 50%;height:20px; margin: 50px;">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                <span class="progress-bar-label">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="center">
+        <h2>Plot</h2>
+        {% if not form.anim.data %}
+            {{ filename|safe }}
+        {% endif %}
+
+        {% if form.anim.data %}
+            <video controls width="700">
+
+                <source src={{filename|safe}}
+                        type="video/mp4">
+
+                Your browser does not support the video tag.
+
+            </video>
+        {% endif %}
+    </div>
+
+    <div class="right">
+        <h2>Words</h2>
+        {{ figHistWords|safe }}
+    </div>
+
+</div>
+
+{% endblock %}
