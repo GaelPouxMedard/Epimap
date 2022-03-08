@@ -160,7 +160,7 @@ def index():
             form.plotPoints.data = False
             form.plotKde.data = True
             form.plotHist2d.data = False
-            form.anim.data = True
+            form.anim.data = False
             form.weighted.data = True
             form.cities.data = True
             form.fixedVmax.data = False
