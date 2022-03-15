@@ -28,7 +28,21 @@
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-
+    <!-- Matomo -->
+    <script>
+    var _paq = window._paq = window._paq || [];
+    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+    (function() {
+        var u="https://analytics.msh-lse.fr/";
+        _paq.push(['setTrackerUrl', u+'matomo.php']);
+        _paq.push(['setSiteId', '9']);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+    })();
+    </script>
+    <!-- End Matomo Code -->
     <!--
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
@@ -380,7 +394,7 @@
                      - Download data: <a href="/get-dataset" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
                     {% endif %}
                     <div style="font-size: 8px">
-                        (if your browser does not display the map correctly, try downloading it or launch the video and then click <a href="http://gpouxmed.pythonanywhere.com">here</a>)
+                        (if your browser does not display the map correctly, try downloading it or launch the video and then click <a href="/">here</a>)
                     </div>
                 </div>
             </div>
@@ -1042,10 +1056,10 @@ on the map. A cluster is defined such as none of its points is distant to all th
                                 <li>Population present in the corpus at a given time.</li>
                                 <li>The <a href="https://en.wikipedia.org/wiki/Entropy">entropy</a> of the data in the corpus. It is computed as follows: if two points on the map are closer than R km, they are linked together.
                                     This way if two groups of points are far from each other they will not be linked together: they form clusters. The normalized entropy is defined as
-                                    <img src="http://latex.codecogs.com/svg.latex?S=-\frac{1}{\log C}\sum_c \frac{N_c}{N} \times \log (\frac{N_c}{N})" border="0"/>, where
-                                    <img src="http://latex.codecogs.com/svg.latex?C" border="0"/> is the number of clusters,
-                                    <img src="http://latex.codecogs.com/svg.latex?N_c" border="0"/> the population of the cluster c, and
-                                    <img src="http://latex.codecogs.com/svg.latex?N" border="0"/> the total population.
+                                    <img src="https://latex.codecogs.com/svg.latex?S=-\frac{1}{\log C}\sum_c \frac{N_c}{N} \times \log (\frac{N_c}{N})" border="0"/>, where
+                                    <img src="https://latex.codecogs.com/svg.latex?C" border="0"/> is the number of clusters,
+                                    <img src="https://latex.codecogs.com/svg.latex?N_c" border="0"/> the population of the cluster c, and
+                                    <img src="https://latex.codecogs.com/svg.latex?N" border="0"/> the total population.
                                     A large entropy (maximum 1) signifies that there are several large distinct clusters, while a low entropy (minimum 0) signifies the presence of only one big cluster.
                                     This could for instance indicate a phenomena of names migration -colonisation, trading moves, cultural trend, etc.
                                     Be careful, the quality of this measure depends on the total population considered. When population is low, it might be not significative.</li>
@@ -1201,7 +1215,7 @@ on the map. A cluster is defined such as none of its points is distant to all th
 buttonFormClicked();
 $("#submitButtonInactive").hide();
 $("#divprogbar").hide();
-if({{ pending }}){pressedSubmit();}
+if( "True" === "{{ pending }}"){pressedSubmit();}
 </script>
 
 </html>

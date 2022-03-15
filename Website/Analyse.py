@@ -54,7 +54,8 @@ class FasterFFMpegWriter(FFMpegWriter):
             # Draw and save the frame as an argb string to the pipe sink
             #self.fig.canvas.draw()
 
-            self._frame_sink().write(self.fig.canvas.tostring_argb())
+            # self._frame_sink().write(self.fig.canvas.tostring_argb())
+            self._proc.stdin.write(self.fig.canvas.tostring_argb())
         except (RuntimeError, IOError) as e:
             out, err = self._proc.communicate()
             raise IOError('Error saving animation to file (cause: {0}) '

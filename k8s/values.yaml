@@ -1,0 +1,188 @@
+epimap:
+  ci: 
+    enabled: false
+    serverUrl: https://git.msh-lse.fr/ci
+    tags: epimap
+    registrationToken: ""
+  image:
+    registry: 
+      name: "docker.io"
+      # dockercfg in base64
+      # base64login: "ZG9ja2VyY2ZnIGluIGJhc2U2NA=="
+    name: v20100/epimap
+    tag: latest
+global:
+  imagePullSecrets:
+  - registry-secret
+extraDeploy:
+- |
+  # kubectl create rolebinding {{ .Release.Name }}-default-rolebinding --clusterrole=cluster-admin --serviceaccount={{ .Release.Namespace }}:default --namespace {{ .Release.Namespace }}
+  {{- if .Values.epimap.ci.enabled }}
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonAnnotations }}
+    annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    namespace: {{ .Release.Namespace }}
+    name: {{ .Release.Name }}-gitlab-runner
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: gitlab-runner
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: gitlab-runner
+      spec:
+        containers:
+        - args:
+          - -c
+          - gitlab-runner register kubernetes;echo "$RUNNER_CONFIG" >> /etc/gitlab-runner/config.toml;
+            /usr/bin/dumb-init /entrypoint run --user=gitlab-runner --working-directory=/home/gitlab-runner
+          command:
+          - /bin/bash
+          env:
+          - name: CI_SERVER_URL
+            value: {{ .Values.epimap.ci.serverUrl }}
+          - name: RUNNER_NAME
+            value: Gitlab Runner kubernetes
+          - name: REGISTRATION_TOKEN
+            value: {{ .Values.epimap.ci.registrationToken }}
+          - name: REGISTER_NON_INTERACTIVE
+            value: "true"
+          - name: RUNNER_EXECUTOR
+            value: kubernetes
+          - name: RUNNER_TAG_LIST
+            value: {{ .Values.epimap.ci.tags }}
+          - name: KUBERNETES_NAMESPACE
+            value: {{ .Release.Namespace }}
+          - name: RUNNER_CONFIG
+            value: |
+              #####
+              #[[runners]]
+              #  [runners.kubernetes]
+                    [[runners.kubernetes.volumes.host_path]]
+                      mount_path = "/var/run/docker.sock"
+                      name = "docker"
+                      path = "/var/run/docker.sock"
+          image: gitlab/gitlab-runner:latest
+          imagePullPolicy: Always
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /usr/bin/gitlab-runner
+                - unregister
+                - --all-runners
+          livenessProbe:
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - /usr/bin/gitlab-runner list 2>&1|grep Token
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: git-runner-kubernetes
+          resources: {}
+          securityContext:
+            privileged: true
+            procMount: Default
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/run/docker.sock
+            name: docker-socket
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - hostPath:
+            path: /var/run/docker.sock
+            type: ""
+          name: docker-socket
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonAnnotations }}
+    annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    namespace: {{ .Release.Namespace }}
+    name: {{ .Release.Name }}-rolebinding
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: cluster-admin
+  subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: {{ .Release.Namespace }}
+  ---
+  {{- end -}}
+
+
+  {{- if .Values.epimap.image.registry.base64login }} 
+  apiVersion: v1
+  data:
+    .dockercfg: {{.Values.epimap.image.registry.base64login }}
+  kind: Secret
+  metadata:
+    labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonAnnotations }}
+    annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    namespace: {{ .Release.Namespace }}
+    name: {{- with (index .Values.global.imagePullSecrets 0) }} {{.}} {{- end }}
+  type: kubernetes.io/dockercfg
+  {{- end}} 
+
+sidecars: |-
+  - name: epimap
+    image: {{.Values.epimap.image.registry.name}}/{{.Values.epimap.image.name}}:{{.Values.epimap.image.tag}}
+    imagePullPolicy: Always
+service:
+  type: ClusterIP
+serverBlock: |-
+  server {
+    listen 0.0.0.0:8080;
+    location / {
+      proxy_pass http://localhost:5000;
+      proxy_connect_timeout       300;
+      proxy_send_timeout          300;
+      proxy_read_timeout          300;
+      send_timeout                300;
+    }
+  }
+ingress:
+  enabled: true
+  hostname: epimap.msh-lse.fr
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |-
+      # location block
+      if ($blocked_country) {
+        return 301 https://www.google.fr;
+      }
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |-
+      SecRuleEngine On
+      # SecAction  "id:900130,  phase:1,  nolog,  pass,  t:none,  setvar:tx.crs_exclusions_wordpress=1"
+    nginx.ingress.kubernetes.io/modsecurity-transaction-id: $request_id
+  # hostname: 192.168.1.78.nip.io
