@@ -17,6 +17,7 @@ docker_build:
   only:
     - tags
     - master
+    - main
   tags:
     - kubernetes-production
     - epimap
