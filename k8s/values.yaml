@@ -2,7 +2,7 @@ epimap:
   ci: 
     enabled: false
     serverUrl: https://git.msh-lse.fr/ci
-    tags: epimap
+    tags: epimap,kubernetes-production
     registrationToken: ""
   image:
     registry: 
