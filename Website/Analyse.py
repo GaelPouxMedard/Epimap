@@ -428,7 +428,7 @@ def aggregatePoints(toPlot, cols):
     return toPlot, cols
 
 def treatDataAge(folder, age):
-    inds = (int(age) <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"])
+    inds = (int(age)+5 <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"])  # Période sur 5 ans
 
     toPlot = copy(PS[folder]["arrCoords"][inds])
     if not PS[folder]["weighted"]:
@@ -440,7 +440,12 @@ def treatDataAge(folder, age):
         # a /= div
         # a = 1. - np.sqrt(a)
 
-        a = 1. / (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds])
+        transpmax = 1.
+        if PS[folder]["fixedVmax"]:
+            transpmax = PS[folder]["vmax"]
+        a = transpmax / (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds] + 1e-20)
+        a[PS[folder]["arrDatesU"][inds] == PS[folder]["arrDatesL"][inds]] = 1.
+
     cols = np.zeros((len(toPlot), 4))
     cols[:, 0] = 1.
     cols[:, 3] = a
