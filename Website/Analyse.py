@@ -434,11 +434,13 @@ def treatDataAge(folder, age):
     if not PS[folder]["weighted"]:
         a = np.ones((len(PS[folder]["arrDatesMean"][inds])))
     else:
-        a = np.abs(PS[folder]["arrDatesMean"][inds] - age)
-        div = (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds]) / 2
-        div[div == 0] = 1
-        a /= div
-        a = 1. - np.sqrt(a)
+        # a = np.abs(PS[folder]["arrDatesMean"][inds] - age)
+        # div = (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds]) / 2
+        # div[div == 0] = 1
+        # a /= div
+        # a = 1. - np.sqrt(a)
+
+        a = 1. / (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds])
     cols = np.zeros((len(toPlot), 4))
     cols[:, 0] = 1.
     cols[:, 3] = a

@@ -121,7 +121,7 @@ def get_file():
     filterStatusTreated = [flt for flt in filterStatusTreated if flt != '']
     if session["zoom"]: bbUsr = [session["xmin"], session["ymin"], session["xmax"], session["ymax"]]
     else: bbUsr = [0, 0, 6698000, 4896000]
-    data = Analyse.getData(filterTreated, session["filterOperator"], filterStatusTreated, session["filterStatusOperator"], bbUsr)
+    data = Analyse.getData(filterTreated, session["filterOperator"], filterStatusTreated, session["filterStatusOperator"], bbUsr, session["exclureRome"], session["datasetApprox"])
     #generator = yield data[6]
 
     return Response(data[6], mimetype="text/plain", headers={"Content-Disposition": "attachment;filename=dataset.csv"})
