@@ -15,7 +15,7 @@ class InputForm(Form):
         if self.anim.data and type(self.fps.data)!=float:
             self.fps.errors.append('Please set FPS.')
             result = False
-        if self.fixedVmax.data and type(self.vmax.data)!=float:
+        if self.fixedvmax.data and type(self.vmax.data)!=float:
             self.vmax.errors.append('Please set Vmax.')
             result = False
         if len(self.filter.data)==0 and len(self.filterStatus.data)==0:
@@ -42,13 +42,14 @@ class InputForm(Form):
     style = SelectField('Map', choices=[('lines', 'Borders only'), ('linesFilled', 'Borders + land'), ('bluemarble', 'Satellite')], default="linesFilled")
     cities = BooleanField('Cities')
     gridSize = IntegerField(label='Regions', default=30,validators=[validators.InputRequired()])
-    fixedVmax = BooleanField('Limit')
+    fixedvmax = BooleanField('Limit')
     vmax = FloatField(label='Limit value', default=10)
     sizeScatter = FloatField(label='Size points', default=10)
-    anim = BooleanField('Animated')
+    noDates = BooleanField('No time period', default=False)
+    anim = BooleanField('Animated', default=False)
     uAge = IntegerField(label='Age +', default=200)
     fps = FloatField(label='FPS', default=15)
-    exclureRome = BooleanField('Exclure Rome')
+    exclureRome = BooleanField('Exclure Rome', default=False)
     datasetApprox = BooleanField('Datation approx.')
     zoom = BooleanField('Zoom')
     xmin = FloatField(label='Xmin', default=0)

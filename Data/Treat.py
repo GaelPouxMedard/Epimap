@@ -4,6 +4,7 @@ import html2text
 
 rome = True
 approxDate = True
+noDates = True
 
 def initMaps():
     from mpl_toolkits.basemap import Basemap
@@ -35,8 +36,8 @@ def initMaps():
     plt.close()
 
 
-initMaps()
-pause()
+# initMaps()
+# pause()
 dic = {}
 kw = ["dating", "EDCS-ID", "province", "**to**", "**place:**", "**lieu:**", "**inscription genus / personal status:**"]
 numErrInsc = 0
@@ -150,7 +151,7 @@ for i in dic:
             nbTombesDates+=1
             if int(dic[i]["dating"]) > int(dic[i]["**to**"]):
                 provokeErr()
-        elif approxDate:
+        elif approxDate and not noDate:
             treatedtxt = treatText(dic[i]["inscription"])
             if "hse" in treatedtxt or "hic situs est" in treatedtxt:
                 dicPropre[i]["dates"] = [-200, 50]
@@ -163,6 +164,9 @@ for i in dic:
                 nbTombesDates+=1
             else:
                 provokeErr()
+        elif noDates:
+            treatedtxt = treatText(dic[i]["inscription"])
+            dicPropre[i]["dates"] = [-1000, 1000]
         else:
             provokeErr()
 
@@ -227,8 +231,10 @@ for i in dic:
 fn = "data"
 if not rome:
     fn+="_ssRome"
-if approxDate:
+if approxDate and not noDates:
     fn += "_approx"
+elif noDates:
+    fn += "_noDates"
 with open(fn+".csv", "w+", encoding="utf-8") as f:
     f.write(kwPropres[0])
     for key in kwPropres[1:]:

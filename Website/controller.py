@@ -7,6 +7,9 @@ import time
 import datetime
 import uuid
 import shutil
+import threading
+import multiprocessing
+import pickle
 
 #os.chdir("/home/gpouxmed/EpiMap/")
 
@@ -23,6 +26,7 @@ sizecache=300*1051084  # En Mo*conversion
 template_name = 'niceTemplate'
 
 Bootstrap(app)
+
 
 @app.after_request
 def add_header(r):
@@ -121,15 +125,19 @@ def get_file():
     filterStatusTreated = [flt for flt in filterStatusTreated if flt != '']
     if session["zoom"]: bbUsr = [session["xmin"], session["ymin"], session["xmax"], session["ymax"]]
     else: bbUsr = [0, 0, 6698000, 4896000]
-    data = Analyse.getData(filterTreated, session["filterOperator"], filterStatusTreated, session["filterStatusOperator"], bbUsr, session["exclureRome"], session["datasetApprox"])
-    #generator = yield data[6]
+    data = Analyse.getData(filterTreated, session["filterOperator"], filterStatusTreated, session["filterStatusOperator"], bbUsr, session["exclureRome"], session["datasetApprox"], session["noDates"])
+    #generator = yield data[7]
 
-    return Response(data[6], mimetype="text/plain", headers={"Content-Disposition": "attachment;filename=dataset.csv"})
+    return Response(data[7], mimetype="text/plain", headers={"Content-Disposition": "attachment;filename=dataset.csv"})
 
 
 @app.route("/doneComputing")
 def doneComputing():
-    open(f"./static/users/{session['id']}/submitted.txt", "w+").write(str(0))
+    with open(f"./static/users/{session['id']}/submitted.txt", "w+") as f:
+        f.write(str(0))
+    with open(f"./static/users/{session['id']}/prog.txt", "w+") as f:
+        f.write(str(0)+"\t"+str(0)+"\t"+str(1))
+
     return redirect("/", code=302)
 
 @app.route('/', methods=['GET', 'POST'])
@@ -142,19 +150,28 @@ def index():
     except:filename = "./static/demo/Ages.mp4"
     try:figHistWords = open(f"./static/users/{session['id']}/histNames.html", "r").read()
     except:figHistWords = open("./static/demo/histNames.html", "r").read()
+    try:figHistStat = open(f"./static/users/{session['id']}/histStat.html", "r").read()
+    except:figHistStat = open("./static/demo/histStat.html", "r").read()
     try:figMetrics = open(f"./static/users/{session['id']}/metrics.html", "r").read()
     except:figMetrics = open("./static/demo/metrics.html", "r").read()
 
     login(None)
     session['last_active'] = datetime.datetime.now()
 
-    try: session["submitted"] = int(open(f"./static/users/{session['id']}/submitted.txt", "r").read())
+    try:
+        with open(f"./static/users/{session['id']}/submitted.txt", "r") as f:
+            session["submitted"] = int(f.read())
     except: session["submitted"] = False
 
     if request.method == 'GET':
         try:
             for field in form:
                 field.data = session[field.id]
+            if form.noDates.data == True:
+                form.anim.data = False
+                form.lage.data = 0
+                form.uAge.data = 1
+                form.weighted.data = False
 
         except Exception as e:
             form.plotPoints.data = False
@@ -163,11 +180,12 @@ def index():
             form.anim.data = False
             form.weighted.data = True
             form.cities.data = True
-            form.fixedVmax.data = False
+            form.fixedvmax.data = False
             form.plotClus.data = True
             form.imageOnly.data = False
             form.exclureRome.data = False
             form.datasetApprox.data = False
+            form.noDates.data = False
 
 
     if request.method == 'POST' and form.validate():
@@ -175,10 +193,16 @@ def index():
         login(ipUsr)
         session['last_active'] = datetime.datetime.now()
 
-        open(f"./static/users/{session['id']}/submitted.txt", "w+").write(str(1))
+        with open(f"./static/users/{session['id']}/submitted.txt", "w+") as f:
+            f.write(str(1))
 
         for field in form:
             session[field.id] = field.data
+        if form.noDates.data == True:
+            form.anim.data = False
+            form.lAge.data = 0
+            form.uAge.data = 1
+            form.weighted.data = False
 
         filterTreated = form.filter.data.replace(",", "").replace("\r", "").lower().split("\n")
         filterStatusTreated = form.filterStatus.data.replace(",", "").replace("\r", "").lower().split("\n")
@@ -188,10 +212,12 @@ def index():
         else: bbUsr = [0, 0, 6698000, 4896000]
 
         print(filterTreated, form.filterOperator.data, filterStatusTreated, form.filterStatusOperator.data)
-        data = Analyse.getData(filterTreated, form.filterOperator.data, filterStatusTreated, form.filterStatusOperator.data, bbUsr, form.exclureRome.data, form.datasetApprox.data)
+        data = Analyse.getData(filterTreated, form.filterOperator.data, filterStatusTreated, form.filterStatusOperator.data, bbUsr, form.exclureRome.data, form.datasetApprox.data, form.noDates.data)
         histWords = data[5]
+        histStat = data[6]
         nbInscriptions = len(data[1])
         figHistWords = Analyse.plotFigHistWords(histWords, nbInscriptions, folder=f"./static/users/{session['id']}")
+        figHistStat = Analyse.plotFigHistStat(histStat, nbInscriptions, folder=f"./static/users/{session['id']}")
 
         print("Started", filterTreated, filterStatusTreated)
         session["plots"] = []
@@ -199,40 +225,46 @@ def index():
         if form.plotKde.data: session["plots"].append("kde")
         if form.plotHist2d.data: session["plots"].append("hist2d")
         fig, cb, bg = Analyse.init(f"./static/users/{session['id']}", data, session["plots"], form.style.data, cities=form.cities.data, bbUsr=bbUsr)
+
         try:
-            filename, out, figMetrics = Analyse.run(data, fig, cb,
-                                   gridSize=form.gridSize.data,
-                                   lage=form.lAge.data,
-                                   uage=form.uAge.data,
-                                   filter=filterTreated,
-                                   anim=form.anim.data,
-                                   weighted=form.weighted.data,
-                                   typePlot=session["plots"],
-                                   fixedvmax=form.fixedVmax.data,
-                                   vmax=form.vmax.data,
-                                   fps=form.fps.data,
-                                   style=form.style.data,
-                                   sizeScatter=form.sizeScatter.data,
-                                   folder=f"./static/users/{session['id']}",
-                                   imageOnly=form.imageOnly.data,
-                                   filterOperator=form.filterOperator.data,
-                                   filterStatus=filterStatusTreated,
-                                   filterStatusOperator=form.filterStatusOperator.data,
-                                   plotClus=form.plotClus.data,
-                                   radClus=form.radClus.data,
-                                   bg=bg,
-                                   bbUsr=bbUsr,
-                                   )
+            args = (data, fig, cb,
+                    form.gridSize.data,
+                    form.lAge.data,
+                    form.uAge.data,
+                    filterTreated,
+                    form.anim.data,
+                    form.noDates.data,
+                    form.weighted.data,
+                    session["plots"],
+                    form.fps.data,
+                    form.fixedvmax.data,
+                    form.vmax.data,
+                    form.style.data,
+                    form.sizeScatter.data,
+                    f"./static/users/{session['id']}",
+                    form.imageOnly.data,
+                    form.filterOperator.data,
+                    filterStatusTreated,
+                    form.filterStatusOperator.data,
+                    form.plotClus.data,
+                    form.radClus.data,
+                    bg,
+                    bbUsr)
+
+            filename, out, figMetrics = Analyse.run(*args)
+
 
         except Exception as e:
-            open(f"./static/users/{session['id']}/submitted.txt", "w+").write(str(0))
+            with open(f"./static/users/{session['id']}/submitted.txt", "w+") as f:
+                f.write(str(0))
             return f"There was en error during the computation of the results: {e}.<br>This might happen for the following reasons:<br>\
                 - The request was too large to handle (too many elements to display, too much resolution asked). Note that the hosting website (PythonAnywhere) stops uncompleted requests after 5min.\n\
                 - You launched several requests after reloading the page.<br>\
                 - There are too many persons using EpiMap right now.<br><br>\
                 Taking this in consideration, you can <a href='http://gpouxmed.pythonanywhere.com'>try EpiMap again</a>."
 
-        open(f"./static/users/{session['id']}/submitted.txt", "w+").write(str(0))
+        with open(f"./static/users/{session['id']}/submitted.txt", "w+") as f:
+            f.write(str(0))
 
         print("Finished")
 
@@ -240,12 +272,12 @@ def index():
     folderShort = folderShort[:folderShort.rfind("/")]+"/"
 
     session['lastfilename'] = filename[filename.rfind("/"):]
-    wipeUsrFolder(folderShort, toKeep=[filename[filename.rfind("/"):], "prog", "submitted", "histNames", "metrics"])
+    wipeUsrFolder(folderShort, toKeep=[filename[filename.rfind("/"):], "prog", "submitted", "histNames", "histStat", "metrics"])
 
     outputFileName = folderShort+filename[filename.rfind("/"):]
 
     return render_template(template_name + '.html', form=form, filename=filename, outputFileName=outputFileName, folderShort=folderShort, out=out,
-                           figHistWords=figHistWords, figMetrics=figMetrics, pending=session["submitted"])
+                           figHistWords=figHistWords, figHistStat=figHistStat, figMetrics=figMetrics, pending=session["submitted"])
 
 if __name__ == '__main__':
     app.run(debug=True)

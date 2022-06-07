@@ -4,6 +4,8 @@ matplotlib.use('Agg')
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import matplotlib.pylab as pl
+from matplotlib.colors import ListedColormap
 import mpld3
 from mpld3 import plugins
 from copy import copy
@@ -192,7 +194,7 @@ def filt(filters, filtersJoint, inscr, operator):
                 return pres, []
     return pres, res
 
-def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, exclureRome, datApprox):
+def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, exclureRome, datApprox, noDates):
 
     shiftAge = 40
 
@@ -202,10 +204,13 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
         filterStatusJoint = '|'.join(filterStatus).lower()
 
     histWords = {}
+    histStat = {}
     fn = "data"
     if exclureRome:
         fn += "_ssRome"
-    if datApprox:
+    if noDates:
+        fn += "_noDates"
+    elif datApprox:
         fn += "_approx"
     df = pd.read_csv(fn+".csv", sep="\t")  # REMPLACER PAR fn
 
@@ -240,6 +245,9 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
             continue
 
         if filter is None:
+            resHist = ""
+            if inscr is not None:
+                resHist = inscr.strip().split(" ")
             pass
         else:
             if inscr is np.nan:
@@ -248,23 +256,26 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
                 pres, resHist = filt(filter, filtersJoint, inscr, filterOperator)
                 if not pres:
                     continue
-                for wd in resHist:
-                    if wd not in histWords: histWords[wd] = 0
-                    histWords[wd] += 1
 
         if filterStatus is None:
+            resStat = ""
+            if status is not None:
+                resStat = status.replace("et ", "").strip().split(" ")
             pass
         else:
             if status is None:
                 continue
             else:
-                pres, resHist = filt(filterStatus, filterStatusJoint, status, filterStatusOperator)
+                pres, resStat = filt(filterStatus, filterStatusJoint, status, filterStatusOperator)
                 if not pres:
                     continue
-                for wd in resHist:
-                    if wd not in histWords: histWords[wd] = 0
-                    histWords[wd] += 1
 
+        for wd in resHist:
+            if wd not in histWords: histWords[wd] = 0
+            histWords[wd] += 1
+        for wd in resStat:
+            if wd not in histStat: histStat[wd] = 0
+            histStat[wd] += 1
 
         datesNum = np.array(re.sub(r'[\[|\]]', ' ', dates).split(", "), dtype=float)
 
@@ -280,7 +291,7 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
     bounds = np.array([-10.424482, 25.728333, 49.817223, 57.523959])
     bounds = np.array([0, 0, 6698568.814169849, 4897013.401366526])
 
-    return arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, histWords, arrTxts
+    return arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, histWords, histStat, arrTxts
 
 
 # Plot metadata
@@ -297,7 +308,7 @@ def plotFigHistWords(histWords, nbInscriptions, folder=""):
 
     ax.set_ylim([lg-30, lg])
     ax.set_xlabel("Count")
-    ax.set_title(f"{nbInscriptions} inscriptions found")
+    ax.set_title(f"Keywords - from {nbInscriptions} inscriptions")
     fig.tight_layout()
     fig.savefig(f"{folder}/histNames.jpg")
     plugins.clear(fig)
@@ -311,6 +322,36 @@ def plotFigHistWords(histWords, nbInscriptions, folder=""):
     #    f.write(html)
 
     plt.close(fig)
+
+    with open("histNames.html", "w+") as f:
+        f.write(html)
+    return html
+
+def plotFigHistStat(histStat, nbInscriptions, folder=""):
+    fig, ax = plt.subplots(figsize=(5,4))
+    listWds, cntWds = list(histStat.keys()), list(histStat.values())
+
+    if len(cntWds) == 0:
+        return "No inscription found."
+    sortedCntWds, sortedListWds = zip(*sorted(zip(cntWds, listWds)))
+    sortedCntWds, sortedListWds = list(sortedCntWds), list(sortedListWds)
+    lg = len(sortedCntWds)
+    ax.barh(list(range(lg))[-100:], sortedCntWds[-100:], color="#ecc882", tick_label=sortedListWds[-100:])
+
+    ax.set_ylim([lg-30, lg])
+    ax.set_xlabel("Count")
+    ax.set_title(f"Status - from {nbInscriptions} inscriptions")
+    fig.tight_layout()
+    fig.savefig(f"{folder}/histStat.jpg")
+    plugins.clear(fig)
+    plugins.connect(fig, plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))
+    html = mpld3.fig_to_html(fig)
+    w, h = fig.get_size_inches()*fig.dpi
+    html = html.replace(f"\"width\": {round(w, 1)}", "\"width\": document.getElementById(\"divHistStat\").clientWidth*0.9")
+
+    plt.close(fig)
+    with open("histStat.html", "w+") as f:
+        f.write(html)
     return html
 
 def plotMetrics(folder):
@@ -349,6 +390,8 @@ def plotMetrics(folder):
 
     plt.close(fig)
 
+    with open("metrics.html", "w+") as f:
+        f.write(html)
     return html
 
 
@@ -441,7 +484,7 @@ def treatDataAge(folder, age):
         # a = 1. - np.sqrt(a)
 
         transpmax = 1.
-        if PS[folder]["fixedVmax"]:
+        if PS[folder]["fixedvmax"]:
             transpmax = PS[folder]["vmax"]
         a = transpmax / (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds] + 1e-20)
         a[PS[folder]["arrDatesU"][inds] == PS[folder]["arrDatesL"][inds]] = 1.
@@ -618,7 +661,13 @@ def plotFrameHist2d(folder, age, toPlot, cols, clus):
     if PS[folder]["fixedvmax"]: cmax=PS[folder]["vmax"]
     else: cmax=None
 
-    hist = PS[folder]["fig"].axes[0].hist2d(toPlot[:, 0], toPlot[:, 1], weights=cols[:, 3], bins=[binx, biny], cmap="afmhot_r", alpha=0.8, cmin=0.005, vmax=cmax, range=bb)
+    cmap = pl.cm.afmhot_r
+    my_cmap = cmap(np.arange(cmap.N))
+    my_cmap[:,-1] = np.linspace(0, 1, cmap.N)**0.5 # Set alpha
+    my_cmap = ListedColormap(my_cmap)
+
+    #hist = PS[folder]["fig"].axes[0].hist2d(toPlot[:, 0], toPlot[:, 1], weights=cols[:, 3], bins=[binx, biny], cmap="afmhot_r", alpha=0.8, cmin=0.005, vmax=cmax, range=bb)
+    hist = PS[folder]["fig"].axes[0].hist2d(toPlot[:, 0], toPlot[:, 1], weights=cols[:, 3], bins=[binx, biny], cmap=my_cmap, cmin=0.005, vmax=cmax, range=bb)
 
     if not PS[folder]["anim"]:
         PS[folder]["cb"].set_label(f"Population (total: {round(np.sum(cols[:, 3]), 2)})", rotation=270, size=25, labelpad=25)
@@ -678,8 +727,8 @@ def plotFrameKde(folder, age, toPlot, cols, clus):
     if PS[folder]["fixedvmax"]: cmax=PS[folder]["vmax"]
 
     scipyKde = gaussian_kde([toPlot[:, 0], toPlot[:, 1]], weights=cols[:, 3], bw_method=((PS[folder]["bounds"][2]-PS[folder]["bounds"][0])/(1000000*PS[folder]["gridSize"])))
-    x = np.linspace(PS[folder]["bounds"][0], PS[folder]["bounds"][2], PS[folder]["gridSize"]*4)
-    y = np.linspace(PS[folder]["bounds"][1], PS[folder]["bounds"][3], PS[folder]["gridSize"]*4)
+    x = np.linspace(PS[folder]["bounds"][0], PS[folder]["bounds"][2], 100)
+    y = np.linspace(PS[folder]["bounds"][1], PS[folder]["bounds"][3], 100)
     X, Y = np.meshgrid(x, y)
     grid_coords = np.append(X.reshape(-1, 1), Y.reshape(-1, 1), axis=1)
     Z = scipyKde(grid_coords.T)  # Ca prend du temps.
@@ -708,13 +757,25 @@ def plotFrameKde(folder, age, toPlot, cols, clus):
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))
 
 def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
-    wipePlot(folder)
 
+    with open(folder+"/submitted.txt", "r") as f:
+        keeprunning = int(f.read())
+        if keeprunning == 0:
+            return
+
+    donotredoframe = False
     if toPlot is None:
         age, toPlot, cols, clus = treatDataAge(folder, age)
+        _, toPlot_before, _, _ = treatDataAge(folder, age-1)
+        if len(toPlot_before) == len(toPlot):
+            if np.allclose(toPlot_before, toPlot):
+                donotredoframe = True
         strTitle="Year " + str(int(age))
     else:
-        strTitle = "Years " + str(int(age)) +" to " + str(int(uAge))
+        if PS[folder]["noDates"] == True:
+            strTitle = "All years"
+        else:
+            strTitle = "Years " + str(int(age)) +" to " + str(int(uAge))
 
     if PS[folder]["filterStatus"] is not None:
         strTitle="Status : " + str(PS[folder]["filterStatus"]) + " - " + strTitle
@@ -722,24 +783,27 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
         strTitle="Filter : " + str(PS[folder]["filter"]) + " - " + strTitle
     PS[folder]["fig"].axes[0].set_title(strTitle)
 
-    if "points" in PS[folder]["typePlot"]:
-        try:
-            plotFramePoints(folder, age, toPlot, cols, clus)
-        except Exception as e:
-            print("Points - ", e)
-            pass
-    if "kde" in PS[folder]["typePlot"]:
-        try:
-            plotFrameKde(folder, age, toPlot, cols, clus)
-        except Exception as e:
-            print("Kde - ", e)
-            pass
-    if "hist2d" in PS[folder]["typePlot"]:
-        try:
-            plotFrameHist2d(folder, age, toPlot, cols, clus)
-        except Exception as e:
-            print("Hist - ", e)
-            pass
+    if not donotredoframe or True:
+        wipePlot(folder)
+
+        if "points" in PS[folder]["typePlot"]:
+            try:
+                plotFramePoints(folder, age, toPlot, cols, clus)
+            except Exception as e:
+                print("Points - ", e)
+                pass
+        if "kde" in PS[folder]["typePlot"]:
+            try:
+                plotFrameKde(folder, age, toPlot, cols, clus)
+            except Exception as e:
+                print("Kde - ", e)
+                pass
+        if "hist2d" in PS[folder]["typePlot"]:
+            try:
+                plotFrameHist2d(folder, age, toPlot, cols, clus)
+            except Exception as e:
+                print("Hist - ", e)
+                pass
 
     with open(f"{folder}/prog.txt", "w+") as f:
         f.write(str(age)+"\t"+str(PS[folder]["lage"])+"\t"+str(PS[folder]["uage"]))
@@ -786,16 +850,16 @@ def getMeanAges(folder, lAge, uAge):
 
 
 
-def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True, weighted=True,
+def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True, noDates=False, weighted=True,
         typePlot=["points"], fps=10, fixedvmax=False, vmax=100, style="lines",
         sizeScatter=20, folder="./", imageOnly=False, filterOperator="or", filterStatus=None, filterStatusOperator="or",
         plotClus=False, radClus=100, bg=None, bbUsr=None):
-    arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, figHistWords, txtDS = data
+    arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, figHistWords, figHistStat, txtDS = data
     writervideo = FasterFFMpegWriter(fps=fps)
     bounds = bbUsr
 
     tabVars = {"fig":fig, "bounds":bounds, "weighted":weighted, "gridSize":gridSize, "arrDatesU":arrDatesU, "arrDatesL":arrDatesL,
-               "arrDatesMean":arrDatesMean, "filter":filter, "anim":anim, "typePlot":typePlot, "writervideo":writervideo, "vmax":vmax,
+               "arrDatesMean":arrDatesMean, "filter":filter, "anim":anim, "noDates":noDates, "typePlot":typePlot, "writervideo":writervideo, "vmax":vmax,
                "fixedvmax":fixedvmax, "style":style, "lage":lage, "uage":uage, "sizeScatter":sizeScatter, "arrCoords":arrCoords,
                "filterOperator":filterOperator, "filterStatus":filterStatus, "filterStatusOperator":filterStatusOperator,
                "plotClus":plotClus, "radClus":radClus, "cb":cb, "metrics":{}, "bg":bg}
