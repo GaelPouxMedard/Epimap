@@ -194,8 +194,6 @@ def filt(filters, filtersJoint, inscr, operator):
 
 def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, exclureRome, datApprox, noDates):
 
-    shiftAge = 40
-
     if filter==[""] or filter==[]: filter=None
     if filterStatus==[""] or filterStatus==[]: filterStatus=None
     if filterStatus is not None:
@@ -278,9 +276,9 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
 
         datesNum = np.array(re.sub(r'[\[|\]]', ' ', dates).split(", "), dtype=float)
 
-        arrDatesMean.append(datesNum[0]+(datesNum[1]-datesNum[0]-shiftAge)/2)  # On associe une inscription avec 40 ans de vie
+        arrDatesMean.append(datesNum[0]+(datesNum[1]-datesNum[0])/2)  # On associe une inscription avec 40 ans de vie
         arrCoords.append([coordsNum[1], coordsNum[0]])
-        arrDatesL.append(datesNum[0]-shiftAge)
+        arrDatesL.append(datesNum[0])
         arrDatesU.append(datesNum[1])
 
         arrTxts += str(EDCS)+";"+str(datesNum[0])+";"+str(datesNum[1])+";"+province+";"+str(coordsNum[0])+";"+str(coordsNum[1])+";"+inscr+";"+statusStr+"\n"
