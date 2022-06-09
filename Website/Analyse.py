@@ -466,7 +466,8 @@ def aggregatePoints(toPlot, cols):
     return toPlot, cols
 
 def treatDataAge(folder, age):
-    inds = (int(age)+5 <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"])  # Période sur 5 ans
+    maxtransp = 20  # La fourchette de dates minimale pour avoir un poids de 1
+    inds = (int(age) <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"]-maxtransp)  # Période sur "maxtransp" ans
 
     toPlot = copy(PS[folder]["arrCoords"][inds])
     if not PS[folder]["weighted"] or PS[folder]["noDates"]:
@@ -478,7 +479,6 @@ def treatDataAge(folder, age):
         # a /= div
         # a = 1. - np.sqrt(a)
 
-        maxtransp = 20  # La fourchette de dates minimale pour avoir un poids de 1
         a = maxtransp / (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds] + 1e-20)
         a[a>1] = 1.
 
