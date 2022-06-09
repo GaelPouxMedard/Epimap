@@ -1,1 +1,0 @@
-https://devcenter.heroku.com/articles/python-gunicorn

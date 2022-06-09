@@ -1,0 +1,63 @@
+stages:
+  - build_image
+  - deploy
+
+docker_build:
+  stage: build_image
+  image: docker:19.03.13-dind
+  before_script:
+    - docker login -u $REGISTRY_LOGIN -p $REGISTRY_PASSWORD registry.msh-lse.fr
+  script:
+    - docker info
+    - docker build -t $CONTAINER_TEST_IMAGE .
+    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_MASTER_IMAGE
+    - docker push $CONTAINER_TEST_IMAGE
+    - docker push $CONTAINER_MASTER_IMAGE
+  variables:
+    CONTAINER_TEST_IMAGE: registry.msh-lse.fr/python/$CI_PROJECT_NAME:$CI_BUILD_REF
+    CONTAINER_MASTER_IMAGE: registry.msh-lse.fr/python/$CI_PROJECT_NAME:latest
+  only:
+    - tags
+    - master
+    - main
+  tags:
+    - kubernetes-production
+    - epimap
+
+docker_tag:
+  stage: deploy
+  image: gitlab/dind:latest
+  before_script:
+    - docker login -u $REGISTRY_LOGIN -p $REGISTRY_PASSWORD registry.msh-lse.fr
+  script:
+    - docker pull $CONTAINER_MASTER_IMAGE
+    - docker tag $CONTAINER_MASTER_IMAGE $CONTAINER_TAGGED_IMAGE
+    - docker push $CONTAINER_TAGGED_IMAGE
+  variables:
+    CONTAINER_TAGGED_IMAGE: registry.msh-lse.fr/python/$CI_PROJECT_NAME:$CI_BUILD_TAG
+    CONTAINER_MASTER_IMAGE: registry.msh-lse.fr/python/$CI_PROJECT_NAME:latest
+  dependencies:
+    - docker_build
+  only:
+    - tags
+  tags:
+    - kubernetes-production
+    - epimap
+
+k8s_deploy_production:
+  stage: deploy
+  image: alpine/helm
+  script:
+    - helm repo add bitnami https://charts.bitnami.com/bitnami
+    - helm upgrade $CI_PROJECT_NAME bitnami/nginx --set epimap.image.tag=$CI_COMMIT_TAG --reuse-values --version 9.9.3
+  environment:
+    name: production
+    url: https://epimap.msh-lse.fr
+  dependencies:
+    - docker_build
+  when: manual
+  tags:
+    - kubernetes-production
+    - epimap
+  only:
+    - tags

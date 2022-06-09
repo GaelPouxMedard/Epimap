@@ -81,13 +81,14 @@ def wipeUsrFolder(foldername, toKeep):
             except:
                 pass
 
-
 def login(ipUsr):
     if "id" not in session:
         maybewipecache()
         session["id"] = str(uuid.uuid4())
         if ipUsr is not None:
             session["ip"]=ipUsr
+    if not os.path.isdir(f"./static/users"):
+        os.mkdir(f"./static/users")
     if not os.path.isdir(f"./static/users/{session['id']}"):
         os.mkdir(f"./static/users/{session['id']}")
     if "ip" not in session and ipUsr is not None:
@@ -133,6 +134,8 @@ def get_file():
 
 @app.route("/doneComputing")
 def doneComputing():
+    with open(f"./static/users/{session['id']}/stop.txt", "w+") as f:
+        f.write(str(1))
     with open(f"./static/users/{session['id']}/submitted.txt", "w+") as f:
         f.write(str(0))
     with open(f"./static/users/{session['id']}/prog.txt", "w+") as f:
@@ -146,14 +149,16 @@ def index():
 
     try:out = open(f"./static/users/{session['id']}/out.html", "r").read()
     except:out = None
-    try:filename = f"./static/users/{session['id']}/{session['lastfilename']}"
-    except:filename = "./static/demo/Ages.mp4"
-    try:figHistWords = open(f"./static/users/{session['id']}/histNames.html", "r").read()
-    except:figHistWords = open("./static/demo/histNames.html", "r").read()
-    try:figHistStat = open(f"./static/users/{session['id']}/histStat.html", "r").read()
-    except:figHistStat = open("./static/demo/histStat.html", "r").read()
-    try:figMetrics = open(f"./static/users/{session['id']}/metrics.html", "r").read()
-    except:figMetrics = open("./static/demo/metrics.html", "r").read()
+    try:
+        filename = f"./static/users/{session['id']}/{session['lastfilename']}"
+        figHistWords = open(f"./static/users/{session['id']}/histNames.html", "r").read()
+        figHistStat = open(f"./static/users/{session['id']}/histStat.html", "r").read()
+        figMetrics = open(f"./static/users/{session['id']}/metrics.html", "r").read()
+    except:
+        filename = "./static/demo/Ages.mp4"
+        figMetrics = open("./static/demo/metrics.html", "r").read()
+        figHistStat = open("./static/demo/histStat.html", "r").read()
+        figHistWords = open("./static/demo/histNames.html", "r").read()
 
     login(None)
     session['last_active'] = datetime.datetime.now()
@@ -172,12 +177,14 @@ def index():
                 form.lage.data = 0
                 form.uAge.data = 1
                 form.weighted.data = False
+            if form.anim.data == False:
+                form.weighted.data = False
 
         except Exception as e:
             form.plotPoints.data = False
             form.plotKde.data = True
             form.plotHist2d.data = False
-            form.anim.data = False
+            form.anim.data = True
             form.weighted.data = True
             form.cities.data = True
             form.fixedvmax.data = False
@@ -189,6 +196,9 @@ def index():
 
 
     if request.method == 'POST' and form.validate():
+        with open(f"./static/users/{session['id']}/stop.txt", "w+") as f:
+            f.write(str(0))
+
         ipUsr = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
         login(ipUsr)
         session['last_active'] = datetime.datetime.now()
@@ -203,6 +213,8 @@ def index():
             form.lAge.data = 0
             form.uAge.data = 1
             form.weighted.data = False
+        if form.anim.data == False:
+            form.weighted.data = False
 
         filterTreated = form.filter.data.replace(",", "").replace("\r", "").lower().split("\n")
         filterStatusTreated = form.filterStatus.data.replace(",", "").replace("\r", "").lower().split("\n")
@@ -211,7 +223,6 @@ def index():
         if form.zoom.data: bbUsr = [form.xmin.data, form.ymin.data, form.xmax.data, form.ymax.data]
         else: bbUsr = [0, 0, 6698000, 4896000]
 
-        print(filterTreated, form.filterOperator.data, filterStatusTreated, form.filterStatusOperator.data)
         data = Analyse.getData(filterTreated, form.filterOperator.data, filterStatusTreated, form.filterStatusOperator.data, bbUsr, form.exclureRome.data, form.datasetApprox.data, form.noDates.data)
         histWords = data[5]
         histStat = data[6]
@@ -272,11 +283,13 @@ def index():
     folderShort = folderShort[:folderShort.rfind("/")]+"/"
 
     session['lastfilename'] = filename[filename.rfind("/"):]
-    wipeUsrFolder(folderShort, toKeep=[filename[filename.rfind("/"):], "prog", "submitted", "histNames", "histStat", "metrics"])
+    picname = filename[filename.rfind("/"):]
+    wipeUsrFolder(folderShort, toKeep=[picname, picname.replace('.jpg', '.pdf'), "prog", "submitted", "histNames", "histStat", "metrics"])
 
     outputFileName = folderShort+filename[filename.rfind("/"):]
+    outputFileNamePdf = outputFileName.replace(".jpg", ".pdf")
 
-    return render_template(template_name + '.html', form=form, filename=filename, outputFileName=outputFileName, folderShort=folderShort, out=out,
+    return render_template(template_name + '.html', form=form, filename=filename, outputFileName=outputFileName, outputFileNamePdf=outputFileNamePdf, folderShort=folderShort, out=out,
                            figHistWords=figHistWords, figHistStat=figHistStat, figMetrics=figMetrics, pending=session["submitted"])
 
 if __name__ == '__main__':

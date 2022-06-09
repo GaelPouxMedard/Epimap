@@ -1,0 +1,11 @@
+Makefile
+Data/
+.idea/
+Website/static/users/
+Website/Documentation/
+Website/.idea/
+Website/static/visits.txt
+Website/__pycache__/
+Article epimap.txt
+Idées Epimap.txt
+Déploiement Gitlab.txt

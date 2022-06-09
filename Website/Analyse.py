@@ -56,7 +56,8 @@ class FasterFFMpegWriter(FFMpegWriter):
             # Draw and save the frame as an argb string to the pipe sink
             #self.fig.canvas.draw()
 
-            self._frame_sink().write(self.fig.canvas.tostring_argb())
+            # self._frame_sink().write(self.fig.canvas.tostring_argb())
+            self._proc.stdin.write(self.fig.canvas.tostring_argb())
         except (RuntimeError, IOError) as e:
             out, err = self._proc.communicate()
             raise IOError('Error saving animation to file (cause: {0}) '
@@ -113,9 +114,6 @@ def initMaps():
     minLon, minLat, maxLon, maxLat = bounds
 
     m = Basemap(projection="merc", llcrnrlon=minLon, llcrnrlat=minLat, urcrnrlon=maxLon, urcrnrlat=maxLat, resolution="c", area_thresh=2000.)
-
-    print(m(-10.424482, 25.728333))
-    print(m(49.817223, 57.523959))
 
 
     labCit, longCit, latCit = [], [], []
@@ -212,7 +210,8 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
         fn += "_noDates"
     elif datApprox:
         fn += "_approx"
-    df = pd.read_csv(fn+".csv", sep="\t")  # REMPLACER PAR fn
+
+    df = pd.read_csv(fn+".csv", sep="\t")
 
     if filter is not None:
         ft = [s.lower() for s in filter if s[0]!="-"]
@@ -230,7 +229,7 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
 
     arrDatesMean, arrCoords = [], []
     arrDatesL, arrDatesU = [], []
-    arrTxts = "EDCS\tdate-\tdate+\tprovince\tcoord_x\tcoord_y\tinscr\tcategory\n"
+    arrTxts = "EDCS;date-;date+;province;coord_x;coord_y;inscr;category\n"
 
     for j, line in enumerate(df.values):
         EDCS, dates, province, coords, inscr, statusStr = line
@@ -284,7 +283,7 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
         arrDatesL.append(datesNum[0]-shiftAge)
         arrDatesU.append(datesNum[1])
 
-        arrTxts += str(EDCS)+"\t"+str(datesNum[0])+"\t"+str(datesNum[1])+"\t"+province+"\t"+str(coordsNum[0])+"\t"+str(coordsNum[1])+"\t"+inscr+"\t"+statusStr+"\n"
+        arrTxts += str(EDCS)+";"+str(datesNum[0])+";"+str(datesNum[1])+";"+province+";"+str(coordsNum[0])+";"+str(coordsNum[1])+";"+inscr+";"+statusStr+"\n"
 
 
     arrDatesMean, arrCoords, arrDatesL, arrDatesU = np.array(arrDatesMean), np.array(arrCoords), np.array(arrDatesL), np.array(arrDatesU)
@@ -310,21 +309,18 @@ def plotFigHistWords(histWords, nbInscriptions, folder=""):
     ax.set_xlabel("Count")
     ax.set_title(f"Keywords - from {nbInscriptions} inscriptions")
     fig.tight_layout()
+    fig.savefig(f"{folder}/histNames.pdf")
     fig.savefig(f"{folder}/histNames.jpg")
     plugins.clear(fig)
     plugins.connect(fig, plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))
     html = mpld3.fig_to_html(fig)
     w, h = fig.get_size_inches()*fig.dpi
     html = html.replace(f"\"width\": {round(w, 1)}", "\"width\": document.getElementById(\"divHistNames\").clientWidth*0.9")
-    #html = html.replace(f"\"height\": {round(h, 1)}", "\"height\": document.getElementById(\"divHistNames\").clientHeight")
-
-    #with open(f"static/histNames.html", "w+") as f:
-    #    f.write(html)
+    with open(f"{folder}/histNames.html", "w+") as f:
+        f.write(html)
 
     plt.close(fig)
 
-    with open("histNames.html", "w+") as f:
-        f.write(html)
     return html
 
 def plotFigHistStat(histStat, nbInscriptions, folder=""):
@@ -342,16 +338,17 @@ def plotFigHistStat(histStat, nbInscriptions, folder=""):
     ax.set_xlabel("Count")
     ax.set_title(f"Status - from {nbInscriptions} inscriptions")
     fig.tight_layout()
+    fig.savefig(f"{folder}/histStat.pdf")
     fig.savefig(f"{folder}/histStat.jpg")
     plugins.clear(fig)
     plugins.connect(fig, plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))
     html = mpld3.fig_to_html(fig)
     w, h = fig.get_size_inches()*fig.dpi
     html = html.replace(f"\"width\": {round(w, 1)}", "\"width\": document.getElementById(\"divHistStat\").clientWidth*0.9")
+    with open(f"{folder}/histStat.html", "w+") as f:
+        f.write(html)
 
     plt.close(fig)
-    with open("histStat.html", "w+") as f:
-        f.write(html)
     return html
 
 def plotMetrics(folder):
@@ -363,14 +360,14 @@ def plotMetrics(folder):
     fig, axs = plt.subplots(2, 1, figsize=(8,4))
 
     axs[0].plot(PS[folder]["metrics"]["age"], PS[folder]["metrics"]["pop"], "-", c="blue", label="Population")
-    axs[0].set_xlim([min(PS[folder]["metrics"]["age"]), max(PS[folder]["metrics"]["age"])])
+    axs[0].set_xlim([min(PS[folder]["metrics"]["age"]), max(PS[folder]["metrics"]["age"])+1])
     axs[0].set_xlabel("Age")
     axs[0].set_ylabel("Population")
 
     axs[1].plot(PS[folder]["metrics"]["age"], PS[folder]["metrics"]["ent"], "-", c="red", label="Entropy")
-    axs[1].plot(PS[folder]["metrics"]["age"], PS[folder]["metrics"]["entMBC"], "-", c="#ecc882", label="Entropy without main cluster")
-    axs[1].plot(PS[folder]["metrics"]["age"], PS[folder]["metrics"]["avgDist"], "-", c="g", label="Norm. avg. distance between points")
-    axs[1].set_xlim([min(PS[folder]["metrics"]["age"]), max(PS[folder]["metrics"]["age"])])
+    axs[1].plot(PS[folder]["metrics"]["age"], PS[folder]["metrics"]["entMBC"], "-", c="#ecc882", label="Entropy without isolated points")
+    axs[1].plot(PS[folder]["metrics"]["age"], PS[folder]["metrics"]["avgDist"], "-", c="g", label="Norm. avg. interpoints distance")
+    axs[1].set_xlim([min(PS[folder]["metrics"]["age"]), max(PS[folder]["metrics"]["age"])+1])
     axs[1].set_ylim([0, 1])
     axs[1].set_xlabel("Age")
     axs[1].set_ylabel("Entropy")
@@ -378,20 +375,17 @@ def plotMetrics(folder):
     axs[1].legend()
 
     fig.tight_layout()
-    fig.savefig(f"{folder}/metrics.jpg")
+    fig.savefig(f"{folder}/metrics.pdf")
     plugins.clear(fig)
     plugins.connect(fig, plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))
     html = mpld3.fig_to_html(fig)
     w, h = fig.get_size_inches()*fig.dpi
     html = html.replace(f"\"width\": {round(w, 1)}", "\"width\": document.getElementById(\"divMetrics\").clientWidth*0.9")
-
-    #with open(f"static/metrics.html", "w+") as f:
-    #    f.write(html)
+    with open(f"{folder}/metrics.html", "w+") as f:
+        f.write(html)
 
     plt.close(fig)
 
-    with open("metrics.html", "w+") as f:
-        f.write(html)
     return html
 
 
@@ -405,38 +399,39 @@ def getMetrics(folder, age, coords, weights, writeRes=True):
 
     from sklearn.metrics import pairwise_distances
     dists = pairwise_distances(coords)
-    db = DBSCAN(eps=PS[folder]["radClus"]*1000*(2)**0.5, min_samples=2, metric="precomputed").fit(dists, sample_weight=weights)  # racine pour convertir en km en europe (approx)
+    radclus = 50
+    if PS[folder]["plotClus"]==True:
+        radclus = PS[folder]["radClus"]
+    db = DBSCAN(eps=radclus*1000*(2)**0.5, min_samples=2, metric="precomputed").fit(dists, sample_weight=weights)  # racine pour convertir en km en europe (approx)
     clus = db.labels_
 
     unique, counts = np.unique(clus, return_counts=True)
-    unique, counts = unique[unique!=-1], counts[unique!=-1]
+    #unique, counts = unique[unique!=-1], counts[unique!=-1]
 
-    pops = np.zeros((len(unique)))
+    pops = {}
     for u in unique:
         pops[u] = np.sum(weights[clus == u])
 
     ent, entMBC = 0., 0.
-    pop = np.sum(pops)
-    print(pops)
+    pop = np.sum(weights)
     popMBC = pop
-    if len(pops)>1: popMBC -= np.max(pops)
+    if -1 in pops: popMBC -= pops[-1]
     nbClus = len(pops)
-    for popclus in pops:
-        #print(popclus)
+    for u in pops:
         adj, adjPop, adjPopMBC=0, 0, 0
+        popclus = pops[u]
+
         if popclus==0:
             adj=1e-20
 
-        if nbClus>=2:
-            ent += (popclus/pop)*np.log(popclus/pop+adj)
+        ent += (popclus/pop)*np.log(popclus/pop+adj)
 
-        if popclus != max(pops) and nbClus>=3:
+        if u != -1:
             entMBC += (popclus/popMBC)*np.log(popclus/popMBC+adj)
 
+    ent /= np.log(1./nbClus)+1e-20
     if nbClus>=2:
-        ent /= np.log(1./nbClus)
-    if nbClus>=3:
-        entMBC /= np.log(1. / (nbClus-1))
+        entMBC /= np.log(1. / (nbClus-1))+1e-20
 
     if writeRes:
         PS[folder]["metrics"]["age"].append(age)
@@ -474,7 +469,7 @@ def treatDataAge(folder, age):
     inds = (int(age)+5 <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"])  # Période sur 5 ans
 
     toPlot = copy(PS[folder]["arrCoords"][inds])
-    if not PS[folder]["weighted"]:
+    if not PS[folder]["weighted"] or PS[folder]["noDates"]:
         a = np.ones((len(PS[folder]["arrDatesMean"][inds])))
     else:
         # a = np.abs(PS[folder]["arrDatesMean"][inds] - age)
@@ -483,11 +478,9 @@ def treatDataAge(folder, age):
         # a /= div
         # a = 1. - np.sqrt(a)
 
-        transpmax = 1.
-        if PS[folder]["fixedvmax"]:
-            transpmax = PS[folder]["vmax"]
-        a = transpmax / (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds] + 1e-20)
-        a[PS[folder]["arrDatesU"][inds] == PS[folder]["arrDatesL"][inds]] = 1.
+        maxtransp = 20  # La fourchette de dates minimale pour avoir un poids de 1
+        a = maxtransp / (PS[folder]["arrDatesU"][inds] - PS[folder]["arrDatesL"][inds] + 1e-20)
+        a[a>1] = 1.
 
     cols = np.zeros((len(toPlot), 4))
     cols[:, 0] = 1.
@@ -650,12 +643,8 @@ def init(folder, data, typePlot, styleLoc, cities, bbUsr):
     return fig, cb, bg
 
 def plotFrameHist2d(folder, age, toPlot, cols, clus):
-    print(f"{age}, {len(toPlot)}")
-    print(PS[folder]["filter"])
-
     bb = [[PS[folder]["bounds"][0], PS[folder]["bounds"][2]], [PS[folder]["bounds"][1], PS[folder]["bounds"][3]]]
     fac = (bb[1][1]-bb[1][0])/(bb[0][1]-bb[0][0])
-    print(fac)
     binx, biny = PS[folder]["gridSize"], int(PS[folder]["gridSize"]*fac)#0.693798712)
 
     if PS[folder]["fixedvmax"]: cmax=PS[folder]["vmax"]
@@ -684,10 +673,14 @@ def plotFrameHist2d(folder, age, toPlot, cols, clus):
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True), tooltip)
 
 def plotFramePoints(folder, age, toPlot, cols, clus):
-    print(f"{age}, {len(toPlot)}")
-    print(PS[folder]["filter"])
 
     colorPoints = copy(cols)
+    transpmax = 1.
+    if PS[folder]["fixedvmax"]:
+        transpmax = PS[folder]["vmax"]
+    colorPoints[:, 3] = colorPoints[:, 3]/transpmax
+    cols[:, 3] = cols[:, 3]/transpmax
+
     colorPoints[cols[:, 3] > 1, 3] = 1.  # Si plusieurs tombes à un endroit
     cols[cols[:, 3] > 1, 3] = 1.
 
@@ -698,8 +691,6 @@ def plotFramePoints(folder, age, toPlot, cols, clus):
     if not PS[folder]["plotClus"]:
         PS[folder]["fig"].axes[0].scatter(toPlot[:, 0], toPlot[:, 1], c=cols, s=PS[folder]["sizeScatter"])
     else:
-        print(len(set(clus)), len(clus))
-
         for numCol, c in enumerate(set(clus)):
             rgb=matplotlib.colors.to_rgb(cyclecolors[numCol])
             colorPoints[:, 0] = rgb[0]
@@ -712,9 +703,6 @@ def plotFramePoints(folder, age, toPlot, cols, clus):
         PS[folder]["cb"].set_ticklabels(["", ""])
 
 def plotFrameKde(folder, age, toPlot, cols, clus):
-    print(f"{age}, {len(toPlot)}")
-    print(PS[folder]["filter"])
-
     if len(toPlot)<=2:
         return -1
 
@@ -758,18 +746,19 @@ def plotFrameKde(folder, age, toPlot, cols, clus):
 
 def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
 
-    with open(folder+"/submitted.txt", "r") as f:
-        keeprunning = int(f.read())
-        if keeprunning == 0:
+    with open(folder+"/stop.txt", "r") as f:
+        stop = int(f.read())
+        if stop == 1:
+            print(PS[folder]["filter"], age)
             return
 
     donotredoframe = False
     if toPlot is None:
         age, toPlot, cols, clus = treatDataAge(folder, age)
-        _, toPlot_before, _, _ = treatDataAge(folder, age-1)
-        if len(toPlot_before) == len(toPlot):
-            if np.allclose(toPlot_before, toPlot):
+        if len(PS[folder]["prevData"]) == len(toPlot):
+            if np.allclose(PS[folder]["prevData"], toPlot):
                 donotredoframe = True
+        PS[folder]["prevData"] = toPlot
         strTitle="Year " + str(int(age))
     else:
         if PS[folder]["noDates"] == True:
@@ -777,13 +766,15 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
         else:
             strTitle = "Years " + str(int(age)) +" to " + str(int(uAge))
 
+    print(age, PS[folder]["filter"], len(toPlot))
+
     if PS[folder]["filterStatus"] is not None:
         strTitle="Status : " + str(PS[folder]["filterStatus"]) + " - " + strTitle
     if PS[folder]["filter"] is not None:
         strTitle="Filter : " + str(PS[folder]["filter"]) + " - " + strTitle
     PS[folder]["fig"].axes[0].set_title(strTitle)
 
-    if not donotredoframe or True:
+    if not donotredoframe:
         wipePlot(folder)
 
         if "points" in PS[folder]["typePlot"]:
@@ -811,7 +802,7 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
 
 # Requests
 
-def getAnim(folder, lAge=None, uAge=None):
+def getAnim(folder, filename, lAge=None, uAge=None):
     minAge, maxAge = min(PS[folder]["arrDatesL"]), max(PS[folder]["arrDatesU"])
     if lAge is not None and uAge is not None: ageBounds = [lAge, uAge]
     else: ageBounds = [minAge, maxAge]
@@ -819,19 +810,16 @@ def getAnim(folder, lAge=None, uAge=None):
     ages = list(range(ageBounds[0], ageBounds[1]))
     ani = FasterFuncAnimation(PS[folder]["fig"], getFrame, PS[folder]["bg"], fargs=(folder,), frames=ages, repeat=False, blit=False, interval=0.001)
 
-    now = datetime.datetime.now()
-    hhmmss = "%s-%s-%s" % (now.hour, now.minute, now.second)
-    filename = f'{folder}/Ages_{hhmmss}.mp4'
+
     ani.save(filename, writer=PS[folder]["writervideo"])
 
-    return filename, ani
+    return ani
 
 def getMeanAges(folder, lAge, uAge):
     rangeAge = uAge - lAge
     toPlotTot = [[-1, -1]]
     colsTot = [[0, 0, 0, 0]]
     for age in range(lAge, lAge+rangeAge):
-        print(age)
         age, toPlot, cols, clus = treatDataAge(folder, age)
         toPlotTot += list(toPlot)
         colsTot += list(cols)
@@ -862,11 +850,10 @@ def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True,
                "arrDatesMean":arrDatesMean, "filter":filter, "anim":anim, "noDates":noDates, "typePlot":typePlot, "writervideo":writervideo, "vmax":vmax,
                "fixedvmax":fixedvmax, "style":style, "lage":lage, "uage":uage, "sizeScatter":sizeScatter, "arrCoords":arrCoords,
                "filterOperator":filterOperator, "filterStatus":filterStatus, "filterStatusOperator":filterStatusOperator,
-               "plotClus":plotClus, "radClus":radClus, "cb":cb, "metrics":{}, "bg":bg}
+               "plotClus":plotClus, "radClus":radClus, "cb":cb, "metrics":{}, "bg":bg, "prevData":np.array([])}
 
     global PS
     PS[folder]=tabVars
-
 
     if not PS[folder]["anim"]:
         if len(PS[folder]["arrDatesMean"])==0:
@@ -880,6 +867,7 @@ def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True,
         rapp = h/w
         html=""
         if not imageOnly:
+            PS[folder]["fig"].delaxes(PS[folder]["fig"].axes[1])
             html = mpld3.fig_to_html(PS[folder]["fig"])
             html = html.replace(f"\"width\": {round(w, 1)}", "\"width\": document.getElementById(\"colMap\").clientWidth" )
             html = html.replace(f"\"height\": {round(h, 1)}", f"\"height\": document.getElementById(\"colMap\").clientWidth*{rapp}")
@@ -887,6 +875,7 @@ def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True,
         PS[folder]["fig"].set_size_inches(15, 15*5/8)
 
         PS[folder]["fig"].savefig(filename, dpi=300)
+        PS[folder]["fig"].savefig(filename.replace(".jpg", ".pdf"))
         htmlMetrics = plotMetrics(folder)
         return filename, html, htmlMetrics
 
@@ -894,7 +883,14 @@ def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True,
         if len(PS[folder]["arrDatesMean"])==0:
             return f"{folder}/Pic.jpg", "No inscription found.", "No metrics computed."
 
-        filename, ani = getAnim(folder, lAge=lage, uAge=uage)
+
+
+        now = datetime.datetime.now()
+        hhmmss = "%s-%s-%s" % (now.hour, now.minute, now.second)
+        filename = f'{folder}/Ages_{hhmmss}.mp4'
+
+        ani = getAnim(folder, filename, lAge=lage, uAge=uage)
+
         htmlMetrics = plotMetrics(folder)
         return filename, ani, htmlMetrics
 

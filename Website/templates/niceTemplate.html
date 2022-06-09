@@ -28,7 +28,21 @@
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-
+    <!-- Matomo -->
+    <script>
+    var _paq = window._paq = window._paq || [];
+    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+    (function() {
+        var u="https://analytics.msh-lse.fr/";
+        _paq.push(['setTrackerUrl', u+'matomo.php']);
+        _paq.push(['setSiteId', '9']);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+    })();
+    </script>
+    <!-- End Matomo Code -->
     <!--
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
@@ -123,10 +137,12 @@
             if(formData.get('anim')=='y'){
                 $("#fps").show();
                 $("#imageOnly").hide();
+                $("#weighted").show();
             }
             else {
                 $("#fps").hide();
                 $("#imageOnly").show();
+                $("#weighted").hide();
             }
 
             if(formData.get("plotClus")=='y'){
@@ -155,7 +171,6 @@
 
         if(formData.get("plotKde")=='y' || formData.get("plotHist2d")=='y'){
             $("#gridSize").show();
-            $("#fixedvmax").show();
             $("#vmax").show();
             if(formData.get('fixedvmax')=='y'){
                 $("#vmax").show();
@@ -166,8 +181,13 @@
         }
         else {
             $("#gridSize").hide();
-            $("#fixedvmax").hide();
-            $("#vmax").hide();
+
+            if(formData.get('fixedvmax')=='y'){
+                $("#vmax").show();
+            }
+            else {
+                $("#vmax").hide();
+            }
         }
 
         if(formData.get("zoom")=='y'){
@@ -180,6 +200,19 @@
         }
 
         };
+    </script>
+
+    <!-- Get indexed by Google -->
+    <meta name="google-site-verification" content="HlrKhS6Vl3hvGjUbEqkYT61oIMNgFSl2FX5mSd_g0B0" />
+
+    <!-- Google Analytics -->
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BXCWPMG6Q0"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-BXCWPMG6Q0');
     </script>
 
     <style>
@@ -367,13 +400,15 @@
         <section class="row" id="tm-section-1">
             <div class="col-0 col-sm-2" style="text-align: center; align-items: center;"></div>
             <div class="col-12 col-sm-8" style="text-align: center; align-items: center; width: 100%" id="colMap">
-                {% if not form.anim.data and not form.imageOnly.data%}
-                    {{ out|safe }}
-                {% endif %}
-                {% if not form.anim.data and form.imageOnly.data%}
+                {% if not form.anim.data and not form.imageOnly.data%} <!-- Image en html -->
+                    {% if out != None %}
+                        {{ out|safe }}
+                    {% else %}
+                        <img src="{{ url_for('static', filename=outputFileName+'') }}" width="100%"/>
+                    {% endif %}
+                {% elif not form.anim.data and form.imageOnly.data%} <!-- Image en jpg -->
                     <img src="{{ url_for('static', filename=outputFileName+'') }}" width="100%"/>
-                {% endif %}
-                {% if form.anim.data %}
+                {% else %} <!-- Vidéo en html -->
                     <video controls style="width:100%; margin: 0 auto;;">
 
                         <source src={{filename|safe}}
@@ -386,7 +421,7 @@
 
                 <div style="text-align: center">
                     {% if not form.anim.data %}
-                        Download result: <a href="{{ url_for('static', filename=outputFileName+'') }}" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
+                        Download result: <a href="{{ url_for('static', filename=outputFileNamePdf+'') }}" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
                     - Download data: <a href="/get-dataset" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
 
                     {% endif %}
@@ -396,7 +431,7 @@
                      - Download data: <a href="/get-dataset" download><i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
                     {% endif %}
                     <div style="font-size: 8px">
-                        (if your browser does not display the map correctly, try downloading it or launch the video and then click <a href="http://gpouxmed.pythonanywhere.com">here</a>)
+                        (if your browser does not display the map correctly, try downloading it or launch the video and then click <a href="/">here</a>)
                     </div>
                 </div>
             </div>
@@ -749,7 +784,7 @@
                               <td>
                                   <a tabindex="0" style="color:black" class="d-inline-block" data-toggle="popover" data-trigger="hover" title="Weighted data" data-content="The datation estimations are often bounded within two ages. If weighted is unchecked, an inscription
                                   is counted as 100% present at every time within those bounds. If weighted is checked, one observation whose datation is estimated between year A and year B will be considered
-                                  as (100/(B-A))%. For instance, an observation dated between 0 and 50AD is considered as 2% present on the whole period.">
+                                  as 20*(100/(B-A))%. For instance, an observation dated between 0 and 50AD is considered as 20*2%=40% present on the whole period.">
                                        <i class="fa fa-question-circle-o" aria-hidden="true"></i>
                                   </a>
                               </td>
@@ -1017,24 +1052,26 @@ on the map. A cluster is defined such as none of its points is distant to all th
             <div class="row">
                 <div class="col" id="divHistNames">
                     <div style="text-align:center">
-                        {{ figHistWords|safe }}
-                        <a href="{{ url_for('static', filename=folderShort+'histNames.jpg') }}" download>
+                        <!-- {{ figHistWords|safe }} -->
+                        <img src="{{ url_for('static', filename=folderShort+'histNames.jpg') }}" width="100%"/>
+                        <a href="{{ url_for('static', filename=folderShort+'histNames.pdf') }}" download>
                             <i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
                     </div>
                 </div>
                 <div class="col" id="divHistStat">
                     <div style="text-align:center">
-                        {{ figHistStat|safe }}
-                        <a href="{{ url_for('static', filename=folderShort+'histStat.jpg') }}" download>
+                        <!-- {{ figHistStat|safe }} -->
+                        <img src="{{ url_for('static', filename=folderShort+'histStat.jpg') }}" width="100%"/>
+                        <a href="{{ url_for('static', filename=folderShort+'histStat.pdf') }}" download>
                             <i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
                     </div>
                 </div>
                 <div class="col" id="divMetrics">
-                    <div style="width=100%">
+                    <div style="text-align:center">
                         {{ figMetrics|safe }}
                     </div>
                     <div style="text-align:center">
-                        <a href="{{ url_for('static', filename=folderShort+'metrics.jpg') }}" download>
+                        <a href="{{ url_for('static', filename=folderShort+'metrics.pdf') }}" download>
                         <i class="fa fa-1x fas fa-download" style="color: black;"></i></a>
                     </div>
                 </div>
@@ -1085,10 +1122,10 @@ on the map. A cluster is defined such as none of its points is distant to all th
                                 <li>Population present in the corpus at a given time.</li>
                                 <li>The <a href="https://en.wikipedia.org/wiki/Entropy">entropy</a> of the data in the corpus. It is computed as follows: if two points on the map are closer than R km, they are linked together.
                                     This way if two groups of points are far from each other they will not be linked together: they form clusters. The normalized entropy is defined as
-                                    <img src="http://latex.codecogs.com/svg.latex?S=-\frac{1}{\log C}\sum_c \frac{N_c}{N} \times \log (\frac{N_c}{N})" border="0"/>, where
-                                    <img src="http://latex.codecogs.com/svg.latex?C" border="0"/> is the number of clusters,
-                                    <img src="http://latex.codecogs.com/svg.latex?N_c" border="0"/> the population of the cluster c, and
-                                    <img src="http://latex.codecogs.com/svg.latex?N" border="0"/> the total population.
+                                    <img src="https://latex.codecogs.com/svg.latex?S=-\frac{1}{\log C}\sum_c \frac{N_c}{N} \times \log (\frac{N_c}{N})" border="0"/>, where
+                                    <img src="https://latex.codecogs.com/svg.latex?C" border="0"/> is the number of clusters,
+                                    <img src="https://latex.codecogs.com/svg.latex?N_c" border="0"/> the population of the cluster c, and
+                                    <img src="https://latex.codecogs.com/svg.latex?N" border="0"/> the total population.
                                     A large entropy (maximum 1) signifies that there are several large distinct clusters, while a low entropy (minimum 0) signifies the presence of only one big cluster.
                                     This could for instance indicate a phenomena of names migration -colonisation, trading moves, cultural trend, etc.
                                     Be careful, the quality of this measure depends on the total population considered. When population is low, it might be not significative.</li>
@@ -1135,7 +1172,7 @@ on the map. A cluster is defined such as none of its points is distant to all th
         </section>
 
         <footer class="mt-5">
-            <p class="text-center">Copyleft <span class="copyleft">&copy;</span> 2020 EpiMap - Design: Tooplate</p>
+            <p class="text-center">Copyleft<a href="https://analytics.google.com/analytics/web/#/p318798497/" style="color: black;"> </a><span class="copyleft">&copy;</span><a href="https://search.google.com/search-console?resource_id=https%3A%2F%2Fgaelpouxmedard.github.io%2F"> </a>2022 EpiMap - Design: Tooplate</p>
         </footer>
     </section>
 
@@ -1244,7 +1281,7 @@ on the map. A cluster is defined such as none of its points is distant to all th
 buttonFormClicked();
 $("#submitButtonInactive").hide();
 $("#divprogbar").hide();
-if({{ pending }}){pressedSubmit();}
+if( "True" === "{{ pending }}"){pressedSubmit();}
 </script>
 
 </html>
