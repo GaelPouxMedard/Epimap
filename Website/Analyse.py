@@ -744,11 +744,14 @@ def plotFrameKde(folder, age, toPlot, cols, clus):
 
 def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
 
-    with open(folder+"/stop.txt", "r") as f:
-        stop = int(f.read())
-        if stop == 1:
-            print(PS[folder]["filter"], age)
-            return
+    try:  # If stop exists
+        with open(folder+"/stop.txt", "r") as f:
+            stop = int(f.read())
+            if stop == 1:
+                print(PS[folder]["filter"], age)
+                return
+    except:
+        pass
 
     donotredoframe = False
     if toPlot is None:
