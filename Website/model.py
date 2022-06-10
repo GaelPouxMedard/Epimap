@@ -31,7 +31,7 @@ class InputForm(Form):
     filterStatus = TextAreaField(label='Category', default="",validators=[])
     filterStatusOperator = SelectField('↑', choices=[('and', 'and'), ('or', 'or')], default="or")
     lAge = IntegerField(label='Age -', default=-100,validators=[validators.InputRequired()])
-    weighted = BooleanField('Weighted')
+    weighted = BooleanField('Weighted', default=True)
     plotPoints = BooleanField('Points')
     plotKde = BooleanField('Density')
     plotHist2d = BooleanField('Histogram')

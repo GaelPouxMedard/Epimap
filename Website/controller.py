@@ -177,8 +177,6 @@ def index():
                 form.lage.data = 0
                 form.uAge.data = 1
                 form.weighted.data = False
-            if form.anim.data == False:
-                form.weighted.data = False
 
         except Exception as e:
             form.plotPoints.data = False

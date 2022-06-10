@@ -468,7 +468,7 @@ def treatDataAge(folder, age):
     inds = (int(age) <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"]-maxtransp)  # Période sur "maxtransp" ans
 
     toPlot = copy(PS[folder]["arrCoords"][inds])
-    if not PS[folder]["weighted"] or PS[folder]["noDates"]:
+    if not PS[folder]["weighted"] or PS[folder]["noDates"] or not PS[folder]["anim"]:
         a = np.ones((len(PS[folder]["arrDatesMean"][inds])))
     else:
         # a = np.abs(PS[folder]["arrDatesMean"][inds] - age)
