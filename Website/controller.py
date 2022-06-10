@@ -270,7 +270,7 @@ def index():
                 - The request was too large to handle (too many elements to display, too much resolution asked). Note that the hosting website (PythonAnywhere) stops uncompleted requests after 5min.\n\
                 - You launched several requests after reloading the page.<br>\
                 - There are too many persons using EpiMap right now.<br><br>\
-                Taking this in consideration, you can <a href='http://gpouxmed.pythonanywhere.com'>try EpiMap again</a>."
+                Taking this in consideration, you can <a href='https://epimap.msh-lse.fr'>try EpiMap again</a>."
 
         with open(f"./static/users/{session['id']}/submitted.txt", "w+") as f:
             f.write(str(0))

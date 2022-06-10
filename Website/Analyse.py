@@ -757,8 +757,11 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
     if toPlot is None:
         age, toPlot, cols, clus = treatDataAge(folder, age)
         if len(PS[folder]["prevData"]) == len(toPlot):
-            if np.allclose(PS[folder]["prevData"], toPlot):
-                donotredoframe = True
+            try:
+                if np.allclose(PS[folder]["prevData"], toPlot):
+                    donotredoframe = True
+            except:
+                donotredoframe = False
         PS[folder]["prevData"] = toPlot
         strTitle="Year " + str(int(age))
     else:
