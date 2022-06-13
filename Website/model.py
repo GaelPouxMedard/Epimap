@@ -41,7 +41,7 @@ class InputForm(Form):
     imageOnly = BooleanField('Image')
     style = SelectField('Map', choices=[('lines', 'Borders only'), ('linesFilled', 'Borders + land'), ('bluemarble', 'Satellite')], default="linesFilled")
     cities = BooleanField('Cities')
-    gridSize = IntegerField(label='Regions', default=30,validators=[validators.InputRequired()])
+    gridSize = IntegerField(label='Regions', default=70,validators=[validators.InputRequired()])
     fixedvmax = BooleanField('Limit')
     vmax = FloatField(label='Limit value', default=10)
     sizeScatter = FloatField(label='Size points', default=10)
