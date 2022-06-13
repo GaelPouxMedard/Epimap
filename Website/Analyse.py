@@ -226,6 +226,7 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
         df = df[df['status'].str.contains(filterStatusJoint)]
 
     arrDatesMean, arrCoords = [], []
+    arrInscr = []
     arrDatesL, arrDatesU = [], []
     arrTxts = "EDCS;date-;date+;province;coord_x;coord_y;inscr;category\n"
 
@@ -276,7 +277,8 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
 
         datesNum = np.array(re.sub(r'[\[|\]]', ' ', dates).split(", "), dtype=float)
 
-        arrDatesMean.append(datesNum[0]+(datesNum[1]-datesNum[0])/2)  # On associe une inscription avec 40 ans de vie
+        arrDatesMean.append(datesNum[0]+(datesNum[1]-datesNum[0])/2)
+        arrInscr.append("• "+inscr)
         arrCoords.append([coordsNum[1], coordsNum[0]])
         arrDatesL.append(datesNum[0])
         arrDatesU.append(datesNum[1])
@@ -284,11 +286,11 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
         arrTxts += str(EDCS)+";"+str(datesNum[0])+";"+str(datesNum[1])+";"+province+";"+str(coordsNum[0])+";"+str(coordsNum[1])+";"+inscr+";"+statusStr+"\n"
 
 
-    arrDatesMean, arrCoords, arrDatesL, arrDatesU = np.array(arrDatesMean), np.array(arrCoords), np.array(arrDatesL), np.array(arrDatesU)
+    arrDatesMean, arrCoords, arrInscr, arrDatesL, arrDatesU = np.array(arrDatesMean), np.array(arrCoords), np.array(arrInscr), np.array(arrDatesL), np.array(arrDatesU)
     bounds = np.array([-10.424482, 25.728333, 49.817223, 57.523959])
     bounds = np.array([0, 0, 6698568.814169849, 4897013.401366526])
 
-    return arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, histWords, histStat, arrTxts
+    return arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, histWords, histStat, arrTxts, arrInscr
 
 
 # Plot metadata
@@ -444,18 +446,21 @@ def aggregatePoints(toPlot, cols):
     if len(toPlot)==0:
         return toPlot, cols
 
-    coordsUniques, count = np.unique(toPlot, axis=0, return_counts=True)
+    coordsUniques, count = np.unique(toPlot[:, 0:2], axis=0, return_counts=True)
     coordsToAggregate = coordsUniques[count>20]  # Useless to consider them all
 
     for c in coordsToAggregate:
         ones = np.zeros((len(toPlot)))
-        w = np.where(toPlot == c)[0]
+        w = np.where(toPlot[:, 0:2] == c)[0]
         ones[w]=1
         bols = np.array(ones-1, dtype=bool)
         bols[w[0]]=True  # To avoid stacking arrays
 
+        allTexts = "<br>".join(set(toPlot[list(set(w)), 2]))
+
         newWeight = cols[:, 3].dot(ones)
 
+        toPlot[w[0], 2] = allTexts
         cols = cols[bols]
         toPlot = toPlot[bols]
 
@@ -468,6 +473,7 @@ def treatDataAge(folder, age):
     inds = (int(age) <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"]-maxtransp)  # Période sur "maxtransp" ans
 
     toPlot = copy(PS[folder]["arrCoords"][inds])
+    toPlot = np.c_[toPlot, PS[folder]["arrInscr"][inds]]
     if not PS[folder]["weighted"] or PS[folder]["noDates"] or not PS[folder]["anim"]:
         a = np.ones((len(PS[folder]["arrDatesMean"][inds])))
     else:
@@ -488,7 +494,7 @@ def treatDataAge(folder, age):
 
     clus = []
     if len(toPlot)!=0 and ((age%5==0 and not PS[folder]["anim"]) or PS[folder]["anim"]):
-        clus = getMetrics(folder, age, toPlot, cols[:, 3])
+        clus = getMetrics(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols[:, 3])
 
     return [age, toPlot, cols, clus]
 
@@ -504,8 +510,10 @@ def quantile_to_level(data, quantile):
     levels = np.take(sorted_values, idx, mode="clip")
     return levels
 
-def tohtml(long, lat, z):
-    long, lat, z = np.round(long, 5), np.round(lat, 5), np.round(z, 5)
+def tohtml(long, lat, z, numz=True):
+    long, lat = np.round(long, 5), np.round(lat, 5)
+    if numz:
+        z = np.round(z, 5)
     code = f"""
         <table border="1" class="table">
           <thead>
@@ -555,7 +563,7 @@ def connectToLabelsOnFly(folder, hist):
     {
       font-family:Arial, Helvetica, sans-serif;
       border: 1px solid black;
-      text-align: right;
+      text-align: left;
     }
     """
     ax = PS[folder]["fig"].gca()
@@ -584,7 +592,7 @@ def connectToLabelsOnFly(folder, hist):
     tooltip = plugins.PointHTMLTooltip(points, labels, voffset=10, hoffset=10, css=css)
     return tooltip
 
-def connectToLabelsOnFly_points(folder, hist):
+def connectToLabelsOnFly_points(folder, toPlot):
     css = """
     .table
     {
@@ -607,31 +615,29 @@ def connectToLabelsOnFly_points(folder, hist):
     {
       font-family:Arial, Helvetica, sans-serif;
       border: 1px solid black;
-      text-align: right;
+      text-align: left;
     }
     """
     ax = PS[folder]["fig"].gca()
 
-    bins, xedges, yedges, _ = hist
+    #edgeCirc = (PS[folder]["fig"].axes[0].get_xlim()[1]-PS[folder]["fig"].axes[0].get_xlim()[0])/PS[folder]["gridSize"]
+    edgeCirc = PS[folder]["sizeScatter"]
 
-    edgeSqr = (PS[folder]["fig"].axes[0].get_xlim()[1]-PS[folder]["fig"].axes[0].get_xlim()[0])/PS[folder]["gridSize"]
+    x = np.array(toPlot[:, 0], dtype=float)
+    y = np.array(toPlot[:, 1], dtype=float)
+    inscr = toPlot[:, 2]
 
-    x = np.array([xedges[i] + edgeSqr / 2 for i in range(len(xedges) - 1)])
-    y = np.array([yedges[i] + edgeSqr / 2 for i in range(len(yedges) - 1)])
-    bins[np.isnan(bins)]=0
-    nnz = bins.nonzero()
-    N = len(nnz[0])
-
-    dflong, dflat, dfz = x[nnz[0]], y[nnz[1]], bins[nnz]
+    dflong, dflat, dfz = x, y, inscr
 
     labels = []
-    for i in range(N):
-        labels.append(str(tohtml(dflong[i], dflat[i], dfz[i])))
+    for i in range(len(inscr)):
+        labels.append(str(tohtml(dflong[i], dflat[i], dfz[i], numz=False)))
 
     axmin, axmax = ax.get_xlim()
-    s = (edgeSqr*1.0 * (ax.get_window_extent().width / (axmax - axmin) * 72. / PS[folder]["fig"].dpi)) ** 2
+    s = (edgeCirc*1.0 * (ax.get_window_extent().width / (axmax - axmin) * 72. / PS[folder]["fig"].dpi)) ** 2
+    s = PS[folder]["sizeScatter"]
 
-    points = ax.scatter(dflong, dflat, marker='s', color='k', s=s, alpha=.0, zorder=10)
+    points = ax.scatter(dflong, dflat, marker='o', color='k', s=s, alpha=.0, zorder=10)
 
     tooltip = plugins.PointHTMLTooltip(points, labels, voffset=10, hoffset=10, css=css)
     return tooltip
@@ -723,7 +729,6 @@ def plotFrameHist2d(folder, age, toPlot, cols, clus):
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True), tooltip)
 
 def plotFramePoints(folder, age, toPlot, cols, clus):
-
     colorPoints = copy(cols)
     transpmax = 1.
     if PS[folder]["fixedvmax"]:
@@ -736,12 +741,13 @@ def plotFramePoints(folder, age, toPlot, cols, clus):
 
     if not PS[folder]["anim"]:
         plugins.clear(PS[folder]["fig"])
-        #tooltip = connectToLabelsOnFly(folder, hist)
-        plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))#, tooltip)
+        tooltip = connectToLabelsOnFly_points(folder, toPlot)
+        plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True), tooltip)
 
 
     if not PS[folder]["plotClus"]:
-        PS[folder]["fig"].axes[0].scatter(toPlot[:, 0], toPlot[:, 1], c=cols, s=PS[folder]["sizeScatter"])
+        x, y = np.array(toPlot[:, 0], dtype=float), np.array(toPlot[:, 1], dtype=float)
+        PS[folder]["fig"].axes[0].scatter(x, y, c=cols, s=PS[folder]["sizeScatter"])
     else:
         for numCol, c in enumerate(set(clus)):
             rgb=matplotlib.colors.to_rgb(cyclecolors[numCol])
@@ -802,7 +808,7 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
         with open(folder+"/stop.txt", "r") as f:
             stop = int(f.read())
             if stop == 1:
-                print(PS[folder]["filter"], age)
+                print("Stopped", PS[folder]["filter"], age)
                 return
     except:
         pass
@@ -812,11 +818,11 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
         age, toPlot, cols, clus = treatDataAge(folder, age)
         if len(PS[folder]["prevData"]) == len(toPlot):
             try:
-                if np.allclose(PS[folder]["prevData"], toPlot):
+                if np.allclose(PS[folder]["prevData"], toPlot[:, 0:2]):
                     donotredoframe = True
             except:
                 donotredoframe = False
-        PS[folder]["prevData"] = toPlot
+        PS[folder]["prevData"] = np.copy(toPlot[:, 0:2])
         strTitle="Year " + str(int(age))
     else:
         if PS[folder]["noDates"] == True:
@@ -824,7 +830,7 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
         else:
             strTitle = "Years " + str(int(age)) +" to " + str(int(uAge))
 
-    print(age, PS[folder]["filter"], len(toPlot))
+    print(age, PS[folder]["filter"], len(toPlot), toPlot.shape)
 
     if PS[folder]["filterStatus"] is not None:
         strTitle="Status : " + str(PS[folder]["filterStatus"]) + " - " + strTitle
@@ -840,16 +846,17 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
                 plotFramePoints(folder, age, toPlot, cols, clus)
             except Exception as e:
                 print("Points - ", e)
+                plotFramePoints(folder, age, toPlot, cols, clus)
                 pass
         if "kde" in PS[folder]["typePlot"]:
             try:
-                plotFrameKde(folder, age, toPlot, cols, clus)
+                plotFrameKde(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols, clus)
             except Exception as e:
                 print("Kde - ", e)
                 pass
         if "hist2d" in PS[folder]["typePlot"]:
             try:
-                plotFrameHist2d(folder, age, toPlot, cols, clus)
+                plotFrameHist2d(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols, clus)
             except Exception as e:
                 print("Hist - ", e)
                 pass
@@ -875,7 +882,7 @@ def getAnim(folder, filename, lAge=None, uAge=None):
 
 def getMeanAges(folder, lAge, uAge):
     rangeAge = uAge - lAge
-    toPlotTot = [[-1, -1]]
+    toPlotTot = [[-1, -1, ""]]
     colsTot = [[0, 0, 0, 0]]
     for age in range(lAge, lAge+rangeAge):
         age, toPlot, cols, clus = treatDataAge(folder, age)
@@ -890,7 +897,7 @@ def getMeanAges(folder, lAge, uAge):
 
     colsTot[:, 3] /= rangeAge
 
-    clusTot = getMetrics(folder, 0, toPlotTot, colsTot[:, 3], writeRes=False)
+    clusTot = getMetrics(folder, 0, np.array(toPlotTot[:, 0:2], dtype=float), colsTot[:, 3], writeRes=False)
 
     getFrame(lAge, folder, uAge, toPlotTot, colsTot, clusTot)
 
@@ -900,13 +907,13 @@ def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True,
         typePlot=["points"], fps=10, fixedvmax=False, vmax=100, style="lines",
         sizeScatter=20, folder="./", imageOnly=False, filterOperator="or", filterStatus=None, filterStatusOperator="or",
         plotClus=False, radClus=100, bg=None, bbUsr=None):
-    arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, figHistWords, figHistStat, txtDS = data
+    arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, figHistWords, figHistStat, txtDS, arrInscr = data
     writervideo = FasterFFMpegWriter(fps=fps)
     bounds = bbUsr
 
     tabVars = {"fig":fig, "bounds":bounds, "weighted":weighted, "gridSize":gridSize, "arrDatesU":arrDatesU, "arrDatesL":arrDatesL,
                "arrDatesMean":arrDatesMean, "filter":filter, "anim":anim, "noDates":noDates, "typePlot":typePlot, "writervideo":writervideo, "vmax":vmax,
-               "fixedvmax":fixedvmax, "style":style, "lage":lage, "uage":uage, "sizeScatter":sizeScatter, "arrCoords":arrCoords,
+               "fixedvmax":fixedvmax, "style":style, "lage":lage, "uage":uage, "sizeScatter":sizeScatter, "arrCoords":arrCoords, "arrInscr":arrInscr,
                "filterOperator":filterOperator, "filterStatus":filterStatus, "filterStatusOperator":filterStatusOperator,
                "plotClus":plotClus, "radClus":radClus, "cb":cb, "metrics":{}, "bg":bg, "prevData":np.array([])}
 

@@ -282,7 +282,7 @@ def index():
 
     session['lastfilename'] = filename[filename.rfind("/"):]
     picname = filename[filename.rfind("/"):]
-    wipeUsrFolder(folderShort, toKeep=[picname, picname.replace('.jpg', '.pdf'), "prog", "submitted", "histNames", "histStat", "metrics"])
+    wipeUsrFolder(folderShort, toKeep=[picname, picname.replace('.jpg', '.pdf'), "prog", "stop", "submitted", "histNames", "histStat", "metrics"])
 
     outputFileName = folderShort+filename[filename.rfind("/"):]
     outputFileNamePdf = outputFileName.replace(".jpg", ".pdf")
