@@ -584,6 +584,58 @@ def connectToLabelsOnFly(folder, hist):
     tooltip = plugins.PointHTMLTooltip(points, labels, voffset=10, hoffset=10, css=css)
     return tooltip
 
+def connectToLabelsOnFly_points(folder, hist):
+    css = """
+    .table
+    {
+      border-collapse: collapse;
+    }
+    .th
+    {
+      color: #ffffff;
+      background-color: #5d3700;
+    }
+    .td
+    {
+      background-color: #ecc882;
+    }
+    .td
+    {
+      background-color: #ecc882;
+    }
+    .table, .th, .td
+    {
+      font-family:Arial, Helvetica, sans-serif;
+      border: 1px solid black;
+      text-align: right;
+    }
+    """
+    ax = PS[folder]["fig"].gca()
+
+    bins, xedges, yedges, _ = hist
+
+    edgeSqr = (PS[folder]["fig"].axes[0].get_xlim()[1]-PS[folder]["fig"].axes[0].get_xlim()[0])/PS[folder]["gridSize"]
+
+    x = np.array([xedges[i] + edgeSqr / 2 for i in range(len(xedges) - 1)])
+    y = np.array([yedges[i] + edgeSqr / 2 for i in range(len(yedges) - 1)])
+    bins[np.isnan(bins)]=0
+    nnz = bins.nonzero()
+    N = len(nnz[0])
+
+    dflong, dflat, dfz = x[nnz[0]], y[nnz[1]], bins[nnz]
+
+    labels = []
+    for i in range(N):
+        labels.append(str(tohtml(dflong[i], dflat[i], dfz[i])))
+
+    axmin, axmax = ax.get_xlim()
+    s = (edgeSqr*1.0 * (ax.get_window_extent().width / (axmax - axmin) * 72. / PS[folder]["fig"].dpi)) ** 2
+
+    points = ax.scatter(dflong, dflat, marker='s', color='k', s=s, alpha=.0, zorder=10)
+
+    tooltip = plugins.PointHTMLTooltip(points, labels, voffset=10, hoffset=10, css=css)
+    return tooltip
+
 
 # Plots
 def wipePlot(folder):
@@ -684,7 +736,9 @@ def plotFramePoints(folder, age, toPlot, cols, clus):
 
     if not PS[folder]["anim"]:
         plugins.clear(PS[folder]["fig"])
-        plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))
+        #tooltip = connectToLabelsOnFly(folder, hist)
+        plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))#, tooltip)
+
 
     if not PS[folder]["plotClus"]:
         PS[folder]["fig"].axes[0].scatter(toPlot[:, 0], toPlot[:, 1], c=cols, s=PS[folder]["sizeScatter"])
