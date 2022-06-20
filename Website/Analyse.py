@@ -174,9 +174,10 @@ def initMaps():
 
 # Get data
 def filt(filters, filtersJoint, inscr, operator):
-    res = set(re.findall(filtersJoint[0], inscr))
-    resneg = set(re.findall(filtersJoint[1], inscr))
+    res = set(re.findall(filtersJoint[0], inscr.replace(" ", "  ")))
+    resneg = set(re.findall(filtersJoint[1], inscr.replace(" ", "  ")))
     res = list(res-resneg)
+
 
     if operator=="or":
         pres=False
@@ -196,8 +197,6 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
 
     if filter==[""] or filter==[]: filter=None
     if filterStatus==[""] or filterStatus==[]: filterStatus=None
-    if filterStatus is not None:
-        filterStatusJoint = '|'.join(filterStatus).lower()
 
     histWords = {}
     histStat = {}
@@ -209,35 +208,53 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
     elif datApprox:
         fn += "_approx"
 
-    df = pd.read_csv(fn+".csv", sep="\t")
+    if noDates and not exclureRome:
+        li = []
+        for indexfile in [0,1]:
+            df = pd.read_csv(f"{fn}_{indexfile}.csv", sep="\t")
+            li.append(df)
+        df = pd.concat(li)
+    else:
+        df = pd.read_csv(fn+".csv", sep="\t")
 
     if filter is not None:
         ft = [s.lower() for s in filter if s[0]!="-"]
-        filterTrue = ["\w*"+s+"\w*" for s in ft]
+        filterTrue = [" \w*"+s+"\w* " for s in ft]
         filterTrue = '|'.join(filterTrue)
         ff = [s.replace("-", "").lower() for s in filter if s[0]=="-"]
-        filterFalse = ["\w*"+s+"\w*" for s in ff]
+        filterFalse = [" \w*"+s+"\w* " for s in ff]
         filterFalse = '|'.join(filterFalse)
         filtersJoint = [filterTrue, filterFalse]
 
         if len(ft)!=0:
             df = df[df['inscription'].str.contains('|'.join(ft))]
+
     if filterStatus is not None:
-        df = df[df['status'].str.contains(filterStatusJoint)]
+        ft = [s.lower() for s in filterStatus if s[0]!="-"]
+        filterTrue = [" \w*"+s+"\w* " for s in ft]
+        filterTrue = '|'.join(filterTrue)
+        ff = [s.replace("-", "").lower() for s in filterStatus if s[0]=="-"]
+        filterFalse = [" \w*"+s+"\w* " for s in ff]
+        filterFalse = '|'.join(filterFalse)
+        filterStatusJoint = [filterTrue, filterFalse]
+
+        if len(ft)!=0:
+            df = df[df['status'].str.contains('|'.join(ft))]
 
     arrDatesMean, arrCoords = [], []
-    arrInscr = []
+    arrInscr, arrCities, arrLongLat = [], [], []
     arrDatesL, arrDatesU = [], []
-    arrTxts = "EDCS;date-;date+;province;coord_x;coord_y;inscr;category\n"
+    arrTxts = "EDCS;date-;date+;city;province;long;lat;inscr;status\n"
 
     for j, line in enumerate(df.values):
-        EDCS, dates, province, coords, inscr, statusStr = line
+        EDCS, dates, province, coords, inscr, statusStr, city, coords_xy = line
         if statusStr=="0":
             status=None
         else:
             status=statusStr
 
-        coordsNum = np.array(re.sub(r'[\[|\]]', ' ', coords).split(", "), dtype=float)
+        coordsNum = np.array(re.sub(r'[\[|\]]', ' ', coords_xy).split(", "), dtype=float)
+        coordsNum_longlat = np.array(re.sub(r'[\[|\]]', ' ', coords).split(", "), dtype=float)
 
         if coordsNum[1]<bbUsr[0] or coordsNum[1]>bbUsr[2] or coordsNum[0]<bbUsr[1] or coordsNum[0]>bbUsr[3]:
             continue
@@ -279,18 +296,23 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
 
         arrDatesMean.append(datesNum[0]+(datesNum[1]-datesNum[0])/2)
         arrInscr.append("• "+inscr)
+        arrCities.append(city)
+        arrLongLat.append([coordsNum_longlat[1], coordsNum_longlat[0]])
         arrCoords.append([coordsNum[1], coordsNum[0]])
         arrDatesL.append(datesNum[0])
         arrDatesU.append(datesNum[1])
 
-        arrTxts += str(EDCS)+";"+str(datesNum[0])+";"+str(datesNum[1])+";"+province+";"+str(coordsNum[0])+";"+str(coordsNum[1])+";"+inscr+";"+statusStr+"\n"
+        arrTxts += str(EDCS)+";"+str(datesNum[0])+";"+str(datesNum[1])+";"+city+";"+province+";"+str(coordsNum_longlat[0])+";"+str(coordsNum_longlat[1])+";"+inscr+";"+statusStr+"\n"
 
-
-    arrDatesMean, arrCoords, arrInscr, arrDatesL, arrDatesU = np.array(arrDatesMean), np.array(arrCoords), np.array(arrInscr), np.array(arrDatesL), np.array(arrDatesU)
+    arrDatesMean, arrCoords, arrInscr, arrCities, arrLongLat, arrDatesL, arrDatesU = \
+        np.array(arrDatesMean), np.array(arrCoords), np.array(arrInscr), np.array(arrCities), np.array(arrLongLat), np.array(arrDatesL), np.array(arrDatesU)
     bounds = np.array([-10.424482, 25.728333, 49.817223, 57.523959])
     bounds = np.array([0, 0, 6698568.814169849, 4897013.401366526])
 
-    return arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, histWords, histStat, arrTxts, arrInscr
+    if "/" in histWords:
+        del histWords["/"]
+
+    return arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, histWords, histStat, arrTxts, arrInscr, arrCities, arrLongLat
 
 
 # Plot metadata
@@ -449,22 +471,22 @@ def aggregatePoints(toPlot, cols):
     coordsUniques, count = np.unique(toPlot[:, 0:2], axis=0, return_counts=True)
     coordsToAggregate = coordsUniques[count>20]  # Useless to consider them all
 
+    tokeep = set(list(range(len(toPlot))))
+
     for c in coordsToAggregate:
-        ones = np.zeros((len(toPlot)))
-        w = np.where(toPlot[:, 0:2] == c)[0]
-        ones[w]=1
-        bols = np.array(ones-1, dtype=bool)
-        bols[w[0]]=True  # To avoid stacking arrays
+        w = list(set(np.where(toPlot[:, 0:2] == c)[0]))
+        tokeep -= set(w[1:])
+        tokeep.add(w[0])
 
-        allTexts = "<br>".join(set(toPlot[list(set(w)), 2]))
-
-        newWeight = cols[:, 3].dot(ones)
+        allTexts = "<br>".join(set(toPlot[w, 2]))
+        newWeight = cols[w, 3].sum()
 
         toPlot[w[0], 2] = allTexts
-        cols = cols[bols]
-        toPlot = toPlot[bols]
+        cols[w[0]] = np.array([1, 0, 0, newWeight])
 
-        cols[w[0]]=np.array([1, 0, 0, newWeight])
+
+    toPlot = toPlot[list(tokeep)]
+    cols = cols[list(tokeep)]
 
     return toPlot, cols
 
@@ -472,8 +494,7 @@ def treatDataAge(folder, age):
     maxtransp = 20  # La fourchette de dates minimale pour avoir un poids de 1
     inds = (int(age) <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"]-maxtransp)  # Période sur "maxtransp" ans
 
-    toPlot = copy(PS[folder]["arrCoords"][inds])
-    toPlot = np.c_[toPlot, PS[folder]["arrInscr"][inds]]
+    toPlot = np.c_[PS[folder]["arrCoords"][inds], PS[folder]["arrInscr"][inds], PS[folder]["arrCities"][inds], PS[folder]["arrLongLat"][inds]]
     if not PS[folder]["weighted"] or PS[folder]["noDates"] or not PS[folder]["anim"]:
         a = np.ones((len(PS[folder]["arrDatesMean"][inds])))
     else:
@@ -490,10 +511,10 @@ def treatDataAge(folder, age):
     cols[:, 0] = 1.
     cols[:, 3] = a
 
-    toPlot, cols = aggregatePoints(toPlot, cols)
 
     clus = []
     if len(toPlot)!=0 and ((age%5==0 and not PS[folder]["anim"]) or PS[folder]["anim"]):
+        toPlot, cols = aggregatePoints(toPlot, cols)
         clus = getMetrics(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols[:, 3])
 
     return [age, toPlot, cols, clus]
@@ -510,8 +531,7 @@ def quantile_to_level(data, quantile):
     levels = np.take(sorted_values, idx, mode="clip")
     return levels
 
-def tohtml(long, lat, z, numz=True):
-    long, lat = np.round(long, 5), np.round(lat, 5)
+def tohtml(long, lat, z, city=None, numz=True):
     if numz:
         z = np.round(z, 5)
     code = f"""
@@ -523,21 +543,38 @@ def tohtml(long, lat, z, numz=True):
             </tr>
           </thead>
           <tbody>
+          """
+    if city is not None:
+        code += f"""
             <tr class="tr">
-              <th class="th">X</th>
-              <td class="td">{long}</td>
+              <th class="th">City</th>
+              <td class="td">{city}</td>
             </tr>
+            """
+    if long is not None:
+        long = np.round(long, 5)
+        code += f"""
+                <tr class="tr">
+                  <th class="th">Long</th>
+                  <td class="td">{long}</td>
+                </tr>"""
+    if lat is not None:
+        lat = np.round(lat, 5)
+        code += f"""
+                <tr class="tr">
+                  <th class="th">Lat</th>
+                  <td class="td">{lat}</td>
+                </tr>"""
+    if z is not None:
+        code += f"""
             <tr class="tr">
-              <th class="th">Y</th>
-              <td class="td">{lat}</td>
-            </tr>
-            <tr class="tr">
-              <th class="th">Qty</th>
+              <th class="th">Content</th>
               <td class="td">{z}</td>
-            </tr>
+            </tr>"""
+    code += f"""
           </tbody>
         </table>
-    """
+        """
     return code
 
 def connectToLabelsOnFly(folder, hist):
@@ -582,7 +619,7 @@ def connectToLabelsOnFly(folder, hist):
 
     labels = []
     for i in range(N):
-        labels.append(str(tohtml(dflong[i], dflat[i], dfz[i])))
+        labels.append(str(tohtml(None, None, dfz[i])))
 
     axmin, axmax = ax.get_xlim()
     s = (edgeSqr*1.0 * (ax.get_window_extent().width / (axmax - axmin) * 72. / PS[folder]["fig"].dpi)) ** 2
@@ -620,24 +657,20 @@ def connectToLabelsOnFly_points(folder, toPlot):
     """
     ax = PS[folder]["fig"].gca()
 
-    #edgeCirc = (PS[folder]["fig"].axes[0].get_xlim()[1]-PS[folder]["fig"].axes[0].get_xlim()[0])/PS[folder]["gridSize"]
-    edgeCirc = PS[folder]["sizeScatter"]
-
     x = np.array(toPlot[:, 0], dtype=float)
     y = np.array(toPlot[:, 1], dtype=float)
     inscr = toPlot[:, 2]
-
-    dflong, dflat, dfz = x, y, inscr
+    city = toPlot[:, 3]
+    lat, long = np.array(toPlot[:, 4], dtype=float), np.array(toPlot[:, 5], dtype=float)
 
     labels = []
     for i in range(len(inscr)):
-        labels.append(str(tohtml(dflong[i], dflat[i], dfz[i], numz=False)))
+        labels.append(str(tohtml(long[i], lat[i], inscr[i], city=city[i], numz=False)))
 
     axmin, axmax = ax.get_xlim()
-    s = (edgeCirc*1.0 * (ax.get_window_extent().width / (axmax - axmin) * 72. / PS[folder]["fig"].dpi)) ** 2
     s = PS[folder]["sizeScatter"]
 
-    points = ax.scatter(dflong, dflat, marker='o', color='k', s=s, alpha=.0, zorder=10)
+    points = ax.scatter(x, y, marker='o', color='k', s=s, alpha=.0, zorder=10)
 
     tooltip = plugins.PointHTMLTooltip(points, labels, voffset=10, hoffset=10, css=css)
     return tooltip
@@ -723,7 +756,7 @@ def plotFrameHist2d(folder, age, toPlot, cols, clus):
     PS[folder]["cb"].set_ticks([c*100/m for c in np.linspace(0, m, 6)])  # cbar always has 100 height here.
     PS[folder]["cb"].set_ticklabels([str(np.round(c, 3)) for c in np.linspace(0, m, 6)])
 
-    if not PS[folder]["anim"]:
+    if not PS[folder]["anim"] and not PS[folder]["imageOnly"]:
         plugins.clear(PS[folder]["fig"])
         tooltip = connectToLabelsOnFly(folder, hist)
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True), tooltip)
@@ -739,7 +772,7 @@ def plotFramePoints(folder, age, toPlot, cols, clus):
     colorPoints[cols[:, 3] > 1, 3] = 1.  # Si plusieurs tombes à un endroit
     cols[cols[:, 3] > 1, 3] = 1.
 
-    if not PS[folder]["anim"]:
+    if not PS[folder]["anim"] and not PS[folder]["imageOnly"]:
         plugins.clear(PS[folder]["fig"])
         tooltip = connectToLabelsOnFly_points(folder, toPlot)
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True), tooltip)
@@ -882,7 +915,7 @@ def getAnim(folder, filename, lAge=None, uAge=None):
 
 def getMeanAges(folder, lAge, uAge):
     rangeAge = uAge - lAge
-    toPlotTot = [[-1, -1, ""]]
+    toPlotTot = [[-1, -1, "", "", -1, -1]]
     colsTot = [[0, 0, 0, 0]]
     for age in range(lAge, lAge+rangeAge):
         age, toPlot, cols, clus = treatDataAge(folder, age)
@@ -907,13 +940,14 @@ def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True,
         typePlot=["points"], fps=10, fixedvmax=False, vmax=100, style="lines",
         sizeScatter=20, folder="./", imageOnly=False, filterOperator="or", filterStatus=None, filterStatusOperator="or",
         plotClus=False, radClus=100, bg=None, bbUsr=None):
-    arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, figHistWords, figHistStat, txtDS, arrInscr = data
+    arrDatesMean, arrCoords, arrDatesL, arrDatesU, bounds, figHistWords, figHistStat, txtDS, arrInscr, arrCities, arrCoordsLongLat = data
     writervideo = FasterFFMpegWriter(fps=fps)
     bounds = bbUsr
 
     tabVars = {"fig":fig, "bounds":bounds, "weighted":weighted, "gridSize":gridSize, "arrDatesU":arrDatesU, "arrDatesL":arrDatesL,
                "arrDatesMean":arrDatesMean, "filter":filter, "anim":anim, "noDates":noDates, "typePlot":typePlot, "writervideo":writervideo, "vmax":vmax,
-               "fixedvmax":fixedvmax, "style":style, "lage":lage, "uage":uage, "sizeScatter":sizeScatter, "arrCoords":arrCoords, "arrInscr":arrInscr,
+               "fixedvmax":fixedvmax, "imageOnly": imageOnly, "style":style, "lage":lage, "uage":uage, "sizeScatter":sizeScatter, "arrCoords":arrCoords,
+               "arrInscr":arrInscr, "arrCities":arrCities, "arrLongLat":arrCoordsLongLat,
                "filterOperator":filterOperator, "filterStatus":filterStatus, "filterStatusOperator":filterStatusOperator,
                "plotClus":plotClus, "radClus":radClus, "cb":cb, "metrics":{}, "bg":bg, "prevData":np.array([])}
 
@@ -958,39 +992,5 @@ def run(data, fig, cb, gridSize=30, lage=-50, uage=1000, filter=None, anim=True,
 
         htmlMetrics = plotMetrics(folder)
         return filename, ani, htmlMetrics
-
-
-if __name__ == "__main__":
-    import pprofile
-
-    profiler = pprofile.Profile()
-    with profiler:
-        data = getData(["Iulius"], "or", [''], "or")
-        fig, cb = init(folder, data, "linesFilled", cities=False)
-        filename, out, htmlMetrics = run(data, fig, cb,
-                                    gridSize=30,
-                                    lage=-100,
-                                    uage=-85,
-                                    filter=["Iulius"],
-                                    anim=True,
-                                    weighted=True,
-                                    typePlot=["points", "kde",],
-                                    fixedvmax=False,
-                                    vmax=5,
-                                    fps=5,
-                                    style="linesFilled",
-                                    sizeScatter=10,
-                                    folder=f"./temp",
-                                    imageOnly=True,
-                                    filterOperator="or",
-                                    filterStatus=[''],
-                                    filterStatusOperator="or",
-                                    plotClus=True,
-                                    radClus=200
-                                    )
-
-    profiler.dump_stats("temp/Benchmark.txt")
-
-
 
 
