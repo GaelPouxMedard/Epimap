@@ -513,7 +513,7 @@ def treatDataAge(folder, age):
 
 
     clus = []
-    if len(toPlot)!=0 and ((age%5==0 and not PS[folder]["anim"]) or PS[folder]["anim"]):
+    if len(toPlot)!=0 and (PS[folder]["anim"] or (age%5==0 and not PS[folder]["anim"]) or PS[folder]["noDates"]):
         toPlot, cols = aggregatePoints(toPlot, cols)
         clus = getMetrics(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols[:, 3])
 
@@ -787,9 +787,9 @@ def plotFramePoints(folder, age, toPlot, cols, clus):
             colorPoints[:, 0] = rgb[0]
             colorPoints[:, 1] = rgb[1]
             colorPoints[:, 2] = rgb[2]
-            PS[folder]["fig"].axes[0].scatter(toPlot[:, 0][clus == c], toPlot[:, 1][clus == c], s=PS[folder]["sizeScatter"], c=colorPoints[clus==c])
+            PS[folder]["fig"].axes[0].scatter(np.array(toPlot[:, 0][clus == c], dtype=float), np.array(toPlot[:, 1][clus == c], dtype=float), s=PS[folder]["sizeScatter"], c=colorPoints[clus==c])
 
-    if PS[folder]["typePlot"] == ["points"]:
+    if PS[folder]["typePlot"] == ["points"]:  # Si c'est juste les points
         PS[folder]["cb"].set_ticks([0, 0.0001])
         PS[folder]["cb"].set_ticklabels(["", ""])
 
@@ -879,7 +879,6 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
                 plotFramePoints(folder, age, toPlot, cols, clus)
             except Exception as e:
                 print("Points - ", e)
-                plotFramePoints(folder, age, toPlot, cols, clus)
                 pass
         if "kde" in PS[folder]["typePlot"]:
             try:
