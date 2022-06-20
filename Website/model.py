@@ -50,7 +50,7 @@ class InputForm(Form):
     uAge = IntegerField(label='Age +', default=200)
     fps = FloatField(label='FPS', default=15)
     exclureRome = BooleanField('Exclure Rome', default=False)
-    datasetApprox = BooleanField('Datation approx.')
+    datasetApprox = BooleanField('Datation approx.', default=False)
     zoom = BooleanField('Zoom')
     xmin = FloatField(label='Xmin', default=0)
     xmax = FloatField(label='Xmax', default=6698000)

@@ -176,7 +176,6 @@ def index():
                 form.anim.data = False
                 form.lage.data = 0
                 form.uAge.data = 1
-                form.weighted.data = False
 
         except Exception as e:
             form.plotPoints.data = False
@@ -210,9 +209,6 @@ def index():
             form.anim.data = False
             form.lAge.data = 0
             form.uAge.data = 1
-            form.weighted.data = False
-        if form.anim.data == False:
-            form.weighted.data = False
 
         filterTreated = form.filter.data.replace(",", "").replace("\r", "").lower().split("\n")
         filterStatusTreated = form.filterStatus.data.replace(",", "").replace("\r", "").lower().split("\n")
@@ -260,7 +256,12 @@ def index():
                     bg,
                     bbUsr)
 
+
+            # import pprofile
+            # profiler = pprofile.Profile()
+            # with profiler:
             filename, out, figMetrics = Analyse.run(*args)
+            # profiler.dump_stats("Benchmark.txt")
 
 
         except Exception as e:
