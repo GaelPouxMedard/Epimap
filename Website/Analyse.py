@@ -464,37 +464,41 @@ def getMetrics(folder, age, coords, weights, writeRes=True):
 
     return clus
 
-def aggregatePoints(toPlot, cols):
+def aggregatePoints(toPlot, toPlot_meta, cols):
     if len(toPlot)==0:
-        return toPlot, cols
+        return toPlot, toPlot_meta, cols
 
-    coordsUniques, count = np.unique(toPlot[:, 0:2], axis=0, return_counts=True)
+    dataToAggregate = np.array(toPlot, dtype=float)
+    coordsUniques, count = np.unique(dataToAggregate, axis=0, return_counts=True)
     coordsToAggregate = coordsUniques[count>20]  # Useless to consider them all
 
     tokeep = set(list(range(len(toPlot))))
 
     for c in coordsToAggregate:
-        w = list(set(np.where(toPlot[:, 0:2] == c)[0]))
+        w = list(set(np.where(dataToAggregate == c)[0]))
         tokeep -= set(w[1:])
         tokeep.add(w[0])
 
-        allTexts = "<br>".join(set(toPlot[w, 2]))
+        allTexts = "<br>".join(set(toPlot_meta[w, 0][:10]))
         newWeight = cols[w, 3].sum()
 
-        toPlot[w[0], 2] = allTexts
+        toPlot_meta[w[0], 0] = allTexts
+        toPlot_meta[w[1:], 0] = ""
         cols[w[0]] = np.array([1, 0, 0, newWeight])
 
 
     toPlot = toPlot[list(tokeep)]
+    toPlot_meta = toPlot_meta[list(tokeep)]
     cols = cols[list(tokeep)]
 
-    return toPlot, cols
+    return toPlot, toPlot_meta, cols
 
 def treatDataAge(folder, age):
     maxtransp = 20  # La fourchette de dates minimale pour avoir un poids de 1
     inds = (int(age) <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"]-maxtransp)  # Période sur "maxtransp" ans
 
-    toPlot = np.c_[PS[folder]["arrCoords"][inds], PS[folder]["arrInscr"][inds], PS[folder]["arrCities"][inds], PS[folder]["arrLongLat"][inds]]
+    toPlot = np.array(PS[folder]["arrCoords"][inds], dtype=float)
+    toPlot_meta = np.c_[PS[folder]["arrInscr"][inds], PS[folder]["arrCities"][inds], PS[folder]["arrLongLat"][inds]]
     if not PS[folder]["weighted"] or PS[folder]["noDates"] or not PS[folder]["anim"]:
         a = np.ones((len(PS[folder]["arrDatesMean"][inds])))
     else:
@@ -514,10 +518,10 @@ def treatDataAge(folder, age):
 
     clus = []
     if len(toPlot)!=0 and (PS[folder]["anim"] or (age%5==0 and not PS[folder]["anim"]) or PS[folder]["noDates"]):
-        toPlot, cols = aggregatePoints(toPlot, cols)
-        clus = getMetrics(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols[:, 3])
+        toPlot, toPlot_meta, cols = aggregatePoints(toPlot, toPlot_meta, cols)
+        clus = getMetrics(folder, age, np.array(toPlot, dtype=float), cols[:, 3])
 
-    return [age, toPlot, cols, clus]
+    return [age, toPlot, toPlot_meta, cols, clus]
 
 
 # Plot tools
@@ -629,7 +633,7 @@ def connectToLabelsOnFly(folder, hist):
     tooltip = plugins.PointHTMLTooltip(points, labels, voffset=10, hoffset=10, css=css)
     return tooltip
 
-def connectToLabelsOnFly_points(folder, toPlot):
+def connectToLabelsOnFly_points(folder, toPlot, toPlot_meta):
     css = """
     .table
     {
@@ -659,9 +663,9 @@ def connectToLabelsOnFly_points(folder, toPlot):
 
     x = np.array(toPlot[:, 0], dtype=float)
     y = np.array(toPlot[:, 1], dtype=float)
-    inscr = toPlot[:, 2]
-    city = toPlot[:, 3]
-    lat, long = np.array(toPlot[:, 4], dtype=float), np.array(toPlot[:, 5], dtype=float)
+    inscr = toPlot_meta[:, 0]
+    city = toPlot_meta[:, 1]
+    lat, long = np.array(toPlot_meta[:, 2], dtype=float), np.array(toPlot_meta[:, 3], dtype=float)
 
     labels = []
     for i in range(len(inscr)):
@@ -761,7 +765,7 @@ def plotFrameHist2d(folder, age, toPlot, cols, clus):
         tooltip = connectToLabelsOnFly(folder, hist)
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True), tooltip)
 
-def plotFramePoints(folder, age, toPlot, cols, clus):
+def plotFramePoints(folder, age, toPlot, toPlot_meta, cols, clus):
     colorPoints = copy(cols)
     transpmax = 1.
     if PS[folder]["fixedvmax"]:
@@ -774,7 +778,7 @@ def plotFramePoints(folder, age, toPlot, cols, clus):
 
     if not PS[folder]["anim"] and not PS[folder]["imageOnly"]:
         plugins.clear(PS[folder]["fig"])
-        tooltip = connectToLabelsOnFly_points(folder, toPlot)
+        tooltip = connectToLabelsOnFly_points(folder, toPlot, toPlot_meta)
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True), tooltip)
 
 
@@ -835,7 +839,7 @@ def plotFrameKde(folder, age, toPlot, cols, clus):
         plugins.clear(PS[folder]["fig"])
         plugins.connect(PS[folder]["fig"], plugins.Reset(), plugins.BoxZoom(), plugins.Zoom(enabled=True))
 
-def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
+def getFrame(age=None, folder="", uAge=None, toPlot=None, toPlot_meta=None, cols=None, clus=None):
 
     try:  # If stop exists
         with open(folder+"/stop.txt", "r") as f:
@@ -848,7 +852,7 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
 
     donotredoframe = False
     if toPlot is None:
-        age, toPlot, cols, clus = treatDataAge(folder, age)
+        age, toPlot, toPlot_meta, cols, clus = treatDataAge(folder, age)
         if len(PS[folder]["prevData"]) == len(toPlot):
             try:
                 if np.allclose(PS[folder]["prevData"], toPlot[:, 0:2]):
@@ -876,19 +880,19 @@ def getFrame(age=None, folder="", uAge=None, toPlot=None, cols=None, clus=None):
 
         if "points" in PS[folder]["typePlot"]:
             try:
-                plotFramePoints(folder, age, toPlot, cols, clus)
+                plotFramePoints(folder, age, toPlot, toPlot_meta, cols, clus)
             except Exception as e:
                 print("Points - ", e)
                 pass
         if "kde" in PS[folder]["typePlot"]:
             try:
-                plotFrameKde(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols, clus)
+                plotFrameKde(folder, age, toPlot, cols, clus)
             except Exception as e:
                 print("Kde - ", e)
                 pass
         if "hist2d" in PS[folder]["typePlot"]:
             try:
-                plotFrameHist2d(folder, age, np.array(toPlot[:, 0:2], dtype=float), cols, clus)
+                plotFrameHist2d(folder, age, toPlot, cols, clus)
             except Exception as e:
                 print("Hist - ", e)
                 pass
@@ -914,24 +918,26 @@ def getAnim(folder, filename, lAge=None, uAge=None):
 
 def getMeanAges(folder, lAge, uAge):
     rangeAge = uAge - lAge
-    toPlotTot = [[-1, -1, "", "", -1, -1]]
+    toPlotTot = [[-1, -1]]
+    toPlotTot_meta = [["", "", -1, -1]]
     colsTot = [[0, 0, 0, 0]]
     for age in range(lAge, lAge+rangeAge):
-        age, toPlot, cols, clus = treatDataAge(folder, age)
+        age, toPlot, toPlot_meta, cols, clus = treatDataAge(folder, age)
         toPlotTot += list(toPlot)
+        toPlotTot_meta += list(toPlot_meta)
         colsTot += list(cols)
 
         with open(f"{folder}/prog.txt", "w+") as f:
             f.write(str(age) + "\t" + str(lAge) + "\t" + str(uAge))
 
-    toPlotTot, colsTot = np.array(toPlotTot), np.array(colsTot)
-    toPlotTot, colsTot = aggregatePoints(toPlotTot, colsTot)
+    toPlotTot, toPlotTot_meta, colsTot = np.array(toPlotTot, dtype=float), np.array(toPlotTot_meta), np.array(colsTot)
+    toPlotTot, toPlotTot_meta, colsTot = aggregatePoints(toPlotTot, toPlotTot_meta, colsTot)
 
     colsTot[:, 3] /= rangeAge
 
-    clusTot = getMetrics(folder, 0, np.array(toPlotTot[:, 0:2], dtype=float), colsTot[:, 3], writeRes=False)
+    clusTot = getMetrics(folder, 0, toPlotTot, colsTot[:, 3], writeRes=False)
 
-    getFrame(lAge, folder, uAge, toPlotTot, colsTot, clusTot)
+    getFrame(lAge, folder, uAge, toPlotTot, toPlotTot_meta, colsTot, clusTot)
 
 
 
