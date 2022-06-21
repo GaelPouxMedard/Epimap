@@ -504,7 +504,7 @@ def treatDataAge(folder, age):
 
     toPlot_meta = None
     toPlot = np.array(PS[folder]["arrCoords"][inds], dtype=float)
-    if not PS[folder]["anim"]:
+    if not PS[folder]["anim"] and not PS[folder]["imageOnly"]:
         toPlot_meta = np.c_[PS[folder]["arrInscr"][inds], PS[folder]["arrCities"][inds], PS[folder]["arrLongLat"][inds]]
 
     if not PS[folder]["weighted"] or PS[folder]["noDates"] or not PS[folder]["anim"]:
@@ -927,18 +927,23 @@ def getAnim(folder, filename, lAge=None, uAge=None):
 def getMeanAges(folder, lAge, uAge):
     rangeAge = uAge - lAge
     toPlotTot = [[-1, -1]]
-    toPlotTot_meta = [["", "", -1, -1]]
+    toPlotTot_meta = None
+    if not PS[folder]["imageOnly"]:
+        toPlotTot_meta = [["", "", -1, -1]]
     colsTot = [[0, 0, 0, 0]]
     for age in range(lAge, lAge+rangeAge):
         age, toPlot, toPlot_meta, cols, clus = treatDataAge(folder, age)
         toPlotTot += list(toPlot)
-        toPlotTot_meta += list(toPlot_meta)
+        if toPlotTot_meta is not None:
+            toPlotTot_meta += list(toPlot_meta)
         colsTot += list(cols)
 
         with open(f"{folder}/prog.txt", "w+") as f:
             f.write(str(age) + "\t" + str(lAge) + "\t" + str(uAge))
 
-    toPlotTot, toPlotTot_meta, colsTot = np.array(toPlotTot, dtype=float), np.array(toPlotTot_meta), np.array(colsTot)
+    toPlotTot, colsTot = np.array(toPlotTot, dtype=float), np.array(colsTot)
+    if toPlotTot_meta is not None:
+        toPlotTot_meta = np.array(toPlotTot_meta, dtype=object)
     toPlotTot, toPlotTot_meta, colsTot = aggregatePoints(toPlotTot, toPlotTot_meta, colsTot)
 
     colsTot[:, 3] /= rangeAge
