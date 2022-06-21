@@ -305,9 +305,12 @@ def getData(filter, filterOperator, filterStatus, filterStatusOperator, bbUsr, e
         arrTxts += str(EDCS)+";"+str(datesNum[0])+";"+str(datesNum[1])+";"+city+";"+province+";"+str(coordsNum_longlat[0])+";"+str(coordsNum_longlat[1])+";"+inscr+";"+statusStr+"\n"
 
     arrDatesMean, arrCoords, arrInscr, arrCities, arrLongLat, arrDatesL, arrDatesU = \
-        np.array(arrDatesMean), np.array(arrCoords), np.array(arrInscr), np.array(arrCities), np.array(arrLongLat), np.array(arrDatesL), np.array(arrDatesU)
-    bounds = np.array([-10.424482, 25.728333, 49.817223, 57.523959])
+        np.array(arrDatesMean, dtype=float), np.array(arrCoords, dtype=float), \
+        np.array(arrInscr, dtype=object), np.array(arrCities, dtype=object), \
+        np.array(arrLongLat, dtype=float), np.array(arrDatesL, dtype=float), np.array(arrDatesU, dtype=float)
+    # bounds = np.array([-10.424482, 25.728333, 49.817223, 57.523959])
     bounds = np.array([0, 0, 6698568.814169849, 4897013.401366526])
+
 
     if "/" in histWords:
         del histWords["/"]
@@ -479,16 +482,18 @@ def aggregatePoints(toPlot, toPlot_meta, cols):
         tokeep -= set(w[1:])
         tokeep.add(w[0])
 
-        allTexts = "<br>".join(set(toPlot_meta[w, 0][:10]))
-        newWeight = cols[w, 3].sum()
+        if toPlot_meta is not None:  #If not animated
+            allTexts = "<br>".join(set(toPlot_meta[w, 0][:10]))
+            toPlot_meta[w[0], 0] = allTexts
+            toPlot_meta[w[1:], 0] = ""
 
-        toPlot_meta[w[0], 0] = allTexts
-        toPlot_meta[w[1:], 0] = ""
+        newWeight = cols[w, 3].sum()
         cols[w[0]] = np.array([1, 0, 0, newWeight])
 
 
     toPlot = toPlot[list(tokeep)]
-    toPlot_meta = toPlot_meta[list(tokeep)]
+    if toPlot_meta is not None:  #If not animated
+        toPlot_meta = toPlot_meta[list(tokeep)]
     cols = cols[list(tokeep)]
 
     return toPlot, toPlot_meta, cols
@@ -497,8 +502,11 @@ def treatDataAge(folder, age):
     maxtransp = 20  # La fourchette de dates minimale pour avoir un poids de 1
     inds = (int(age) <= PS[folder]["arrDatesU"]) & (int(age) >= PS[folder]["arrDatesL"]-maxtransp)  # Période sur "maxtransp" ans
 
+    toPlot_meta = None
     toPlot = np.array(PS[folder]["arrCoords"][inds], dtype=float)
-    toPlot_meta = np.c_[PS[folder]["arrInscr"][inds], PS[folder]["arrCities"][inds], PS[folder]["arrLongLat"][inds]]
+    if not PS[folder]["anim"]:
+        toPlot_meta = np.c_[PS[folder]["arrInscr"][inds], PS[folder]["arrCities"][inds], PS[folder]["arrLongLat"][inds]]
+
     if not PS[folder]["weighted"] or PS[folder]["noDates"] or not PS[folder]["anim"]:
         a = np.ones((len(PS[folder]["arrDatesMean"][inds])))
     else:
